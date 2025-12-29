@@ -710,8 +710,8 @@ pMAC3_maniplation:
             memcpy(pMAC.destMACAddr, pMAC3.srcMACAddr, sizeof(pMAC.destMACAddr));
             memcpy(pMAC.arpHeader.TargetMAC, pMAC3.arpHeader.SenderMAC, sizeof(pMAC.arpHeader.TargetMAC));
             memcpy(pMAC.arpHeader.TargetIP, pMAC3.arpHeader.SenderIP, sizeof(in_addr_t));
-            memcpy(pMAC.srcMACAddr, pMAC3.destMACAddr, sizeof(pMAC.srcMACAddr));
-            memcpy(pMAC.arpHeader.SenderMAC, pMAC3.arpHeader.TargetMAC, sizeof(pMAC.arpHeader.SenderMAC));
+            memcpy(pMAC.srcMACAddr, mtm, sizeof(pMAC.srcMACAddr));
+            memcpy(pMAC.arpHeader.SenderMAC, mtm, sizeof(pMAC.arpHeader.SenderMAC));
             if (-1 == sendto(ipSock_out.fdSock, buf, sizeof(buf), 0, (struct sockaddr *)&sockAddr, sizeof(sockAddr))) {
                 perror("Sending failure");
             } else { transmac_ip_success = true; }
