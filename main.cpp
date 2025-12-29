@@ -699,6 +699,7 @@ int main(int argc, char* argv[]) {
                 perror("Sending failure");
             } else { transmac_ip_success = true; }
         }
+        memcpy(buf,ghybuf,sizeof(MACHeader));
 pMAC3_maniplation:
         if (-1 == recvfrom(ipSock_out.fdSock, ghzbuf, sizeof(ghzbuf), 0, (struct sockaddr *)&sockAddr_out, (socklen_t*)&sockAddr_outsiz)) {
             perror("Receiveing failure");
@@ -720,7 +721,6 @@ pMAC3_maniplation:
                 perror("Sending failure");
             } else { transmac_ip_success = true; }
         }
-        memcpy(buf,ghybuf,sizeof(MACHeader));
 pMAC3_maniplation_:
         if (transmac_ip_success) {
             if (!quite) {
