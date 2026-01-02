@@ -62,6 +62,13 @@ struct IP4Header {
     unsigned char DSTIP[4]{0};
     unsigned char OptAndData[1480]{0};
 };
+struct PseudoIP4Header {
+    unsigned char SRCIP[4]{0};
+    unsigned char DSTIP[4]{0};
+    unsigned char DUMMY{0};
+    unsigned char Proto{0};
+    unsigned short Length{0};
+};
 
 struct MACHeader {
     unsigned char destMACAddr[6]{0};
@@ -349,6 +356,66 @@ void listInterfaces() {
         freeifaddrs(ifAddrStruct);
 }
 
+struct PseudoIP4HeaderandIPX{
+    PseudoIP4Header pseudoIP4Header;
+    unsigned char Payload[1600];
+};
+
+void calculateipchksum(IP4Header* pip4Header){
+    PseudoIP4HeaderandIPX pseudoIP4HeaderandIPX;
+    unsigned int checksum = 0;
+    pip4Header->CheckSum = 0;
+    for (int cnt=0;cnt<((pip4Header->VerAndHeaderLength & 0xF) * 2);cnt++){
+        if (cnt == 5) {continue;}
+        checksum += htons((*(short*)((&pip4Header->VerAndHeaderLength) + (cnt * 2))));
+        if (((checksum >> 16) & 0xFFFF)){checksum = ((checksum & 0xFFFF) + ((checksum >> 16) & 0xFFFF)) & 0xFFFF;}
+    }
+    pip4Header->CheckSum = (~(htons((checksum & 0xFFFF) + ((checksum >> 16) & 0xFFFF)))) & 0xFFFF;
+
+    if (pip4Header->Proto == 6 || pip4Header->Proto == 17){
+        memset(&pseudoIP4HeaderandIPX.pseudoIP4Header,0,sizeof(pseudoIP4HeaderandIPX));
+        memcpy(pseudoIP4HeaderandIPX.pseudoIP4Header.SRCIP,pip4Header->SRCIP,sizeof(pseudoIP4HeaderandIPX.pseudoIP4Header.SRCIP));
+        memcpy(pseudoIP4HeaderandIPX.pseudoIP4Header.DSTIP,pip4Header->DSTIP,sizeof(pseudoIP4HeaderandIPX.pseudoIP4Header.DSTIP));
+        pseudoIP4HeaderandIPX.pseudoIP4Header.Proto = pip4Header->Proto;
+        memcpy(pseudoIP4HeaderandIPX.Payload,((void*)pip4Header) + ((pip4Header->VerAndHeaderLength & 0xF) * 4),htons(pip4Header->Length) - ((pip4Header->VerAndHeaderLength & 0xF) * 4));
+        if (pip4Header->Proto == 6){
+            pseudoIP4HeaderandIPX.pseudoIP4Header.Length = htons(htons(pip4Header->Length) - ((pip4Header->VerAndHeaderLength & 0xF) * 4));
+        } else if (pip4Header->Proto == 17){
+            pseudoIP4HeaderandIPX.pseudoIP4Header.Length = *(unsigned short*)(((void*)&pseudoIP4HeaderandIPX.Payload + 4));
+        }
+    }
+    if (pip4Header->Proto == 6){
+        checksum = 0;
+        int cnt=0;
+        pseudoIP4HeaderandIPX.Payload[16] = 0;
+        pseudoIP4HeaderandIPX.Payload[17] = 0;
+        int delta = ((htons(pip4Header->Length) - ((pip4Header->VerAndHeaderLength & 0xF) * 4)) + 12);
+        if (delta&1){ delta++; }
+        for (cnt=0;cnt<delta;cnt += 2){
+            checksum += htons((*(short*)((void*)(((void*)&pseudoIP4HeaderandIPX) + (cnt)))));
+            if (((checksum >> 16) & 0xFFFF)){checksum = ((checksum & 0xFFFF) + ((checksum >> 16) & 0xFFFF)) & 0xFFFF;}
+        }
+        checksum = (~(htons((checksum & 0xFFFF) + ((checksum >> 16) & 0xFFFF)))) & 0xFFFF;
+        (*(unsigned char*)(((void*)(((void*)pip4Header) + ((pip4Header->VerAndHeaderLength & 0xF) * 4) + 16)))) = ((checksum >> (8 * 0)) & 0xFF);
+        (*(unsigned char*)(((void*)(((void*)pip4Header) + ((pip4Header->VerAndHeaderLength & 0xF) * 4) + 17)))) = ((checksum >> (8 * 1)) & 0xFF);
+    } else if (pip4Header->Proto == 17) {
+        checksum = 0;
+        int cnt=0;
+        pseudoIP4HeaderandIPX.Payload[6] = 0;
+        pseudoIP4HeaderandIPX.Payload[7] = 0;
+        int delta = ((htons(pip4Header->Length) - ((pip4Header->VerAndHeaderLength & 0xF) * 4)) + 12);
+        if (delta&1){ delta++; }
+        for (cnt=0;cnt<delta;cnt += 2){
+            checksum += htons((*(short*)((void*)(((void*)&pseudoIP4HeaderandIPX) + (cnt)))));
+            if (((checksum >> 16) & 0xFFFF)){checksum = ((checksum & 0xFFFF) + ((checksum >> 16) & 0xFFFF)) & 0xFFFF;}
+        }
+        checksum = (~(htons((checksum & 0xFFFF) + ((checksum >> 16) & 0xFFFF)))) & 0xFFFF;
+        (*(unsigned char*)(((void*)(((void*)pip4Header) + ((pip4Header->VerAndHeaderLength & 0xF) * 4) + 6)))) = ((checksum >> (8 * 0)) & 0xFF);
+        (*(unsigned char*)(((void*)(((void*)pip4Header) + ((pip4Header->VerAndHeaderLength & 0xF) * 4) + 7)))) = ((checksum >> (8 * 1)) & 0xFF);
+    }
+    return;
+}
+
 int main(int argc, char* argv[]) {
     if (argc == 1) {
         usage();
@@ -383,6 +450,8 @@ int main(int argc, char* argv[]) {
     char oInterfaceName[96]{'\0'};
     int iInterval = 1;
     bool quite = false;
+    bool sendonly = false;
+    bool recvonly = false;
 
     for (int i = 1; i < argc; i++) {
         if (!memcmp("-rti", argv[i], 4) && i + 1 < argc && memcmp("-", argv[i+1], 1)) {
@@ -501,6 +570,10 @@ int main(int argc, char* argv[]) {
             nomeflag = true;
         } else if (!memcmp("-poll", argv[i], 5)){
             enabledthepooling = true;
+        } else if (!memcmp("-sendonly", argv[i], 9)){
+            sendonly = true;
+        } else if (!memcmp("-recvonly", argv[i], 9)){
+            recvonly = true;
         } else {
             usage();
             exit(1);
@@ -743,7 +816,46 @@ int main(int argc, char* argv[]) {
     long unsigned int sockAddrghxsiz;
     long unsigned int sockAddr_outsiz;
 
+    fd_set fds, readfds;
+
+    FD_ZERO(&readfds);
+    FD_SET(ipSock.fdSock, &readfds);
+    FD_SET(ipSock_out.fdSock, &readfds);
+    int max_fd = std::max(ipSock.fdSock, ipSock_out.fdSock) + 1;
+
     //fprintf(stdout, "%d.%d.%d.%d", mti_binary[0], mti_binary[1], mti_binary[2], mti_binary[3]);
+
+    bool unfunctedpart = false;
+    bool unfunctedpart2 = false;
+    bool flagofsrcnochange = false;
+    srand((unsigned)time(NULL));
+
+#if 0
+    if (fork() != 0){
+        usleep(120);
+        srand((unsigned)time(NULL));
+        unfunctedpart = true;
+        unfunctedpart2 = true;
+        //usleep(33);
+        //usleep(34);
+        //usleep(534);
+        //usleep(573);
+        //usleep(634);
+        //usleep(637);
+        //usleep(577);
+        //usleep(377);
+        //usleep(877);
+        //usleep(1877);
+        //usleep(1937);
+        //usleep(3877);
+        usleep((rand() % 93) + 87);
+        usleep(1320);
+    }else{
+        usleep(1320);
+        srand((unsigned)time(NULL));
+        usleep(120);
+    }
+#endif
 
     timeofpooling = time(0);
 
@@ -766,8 +878,13 @@ int main(int argc, char* argv[]) {
         MACIP4Header &pIP4MAC3 = (MACIP4Header&)ghzbuf;
         memcpy(ghybuf,buf,sizeof(MACHeader));
 gettingpacket:
+        memcpy(&fds, &readfds, sizeof(fd_set));
+        if (select(max_fd, &fds, NULL, NULL, NULL) < 0){
+            perror("Selecting failure");
+        }
         transmac_ip_success = false;
         transmac_ip_success = false;
+        if (!FD_ISSET(ipSock.fdSock, &fds)){ goto pMAC3_maniplation; }
         sockAddrghx.sll_protocol = htons(ETH_P_ALL);
         if (-1 == (ghxsiz = recvfrom(ipSock.fdSock, ghxbuf, sizeof(ghxbuf), 0, (struct sockaddr *)&sockAddrghx, (socklen_t*)&sockAddrghxsiz))) {
             perror("Receiveing failure");
@@ -778,39 +895,30 @@ gettingpacket:
         sockAddr_out.sll_ifindex = ifindex4out;
         if (!((sockAddrghx.sll_protocol == htons(ETH_P_ARP)) || (sockAddrghx.sll_protocol == htons(ETH_P_IP)))){goto pMAC3_maniplation;}
         if ((((pIP4MAC2.ip4Header.DSTIP[0] & mysubnetmask[0]) == (pMAC.arpHeader.SenderIP[0] & mysubnetmask[0])) && ((pIP4MAC2.ip4Header.DSTIP[1] & mysubnetmask[1]) == (pMAC.arpHeader.SenderIP[1] & mysubnetmask[1])) && ((pIP4MAC2.ip4Header.DSTIP[2] & mysubnetmask[2]) == (pMAC.arpHeader.SenderIP[2] & mysubnetmask[2])) && ((pIP4MAC2.ip4Header.DSTIP[3] & mysubnetmask[3]) == (pMAC.arpHeader.SenderIP[3] & mysubnetmask[3]))) && ((((pMAC2.destMACAddr[0] == pMAC.srcMACAddr[0]) && (pMAC2.destMACAddr[1] == pMAC.srcMACAddr[1]) && (pMAC2.destMACAddr[2] == pMAC.srcMACAddr[2]) && (pMAC2.destMACAddr[3] == pMAC.srcMACAddr[3]) && (pMAC2.destMACAddr[4] == pMAC.srcMACAddr[4]) && (pMAC2.destMACAddr[5] == pMAC.srcMACAddr[5]))) && (sockAddrghx.sll_protocol == htons(ETH_P_IP)) && (nomeflag == false || ((*(unsigned int*)&myinterfaceip) != (*(unsigned int*)&pIP4MAC2.ip4Header.SRCIP))))){
+            if (recvonly){ goto pMAC3_maniplation; }
+            //if (unfunctedpart == true) { unfunctedpart = false; goto pMAC3_maniplation; }
+            //unfunctedpart = true;
             memcpy(buf,ghybuf,sizeof(MACHeader));
             memcpy(pIP4MAC2.srcMACAddr, mtm, sizeof(pMAC.srcMACAddr));
             memcpy(pIP4MAC2.destMACAddr, msm, sizeof(pMAC.srcMACAddr));
 #if 1
             //pIP4MAC2.ip4Header.TTL--;
             if (((nsi_binary[0] == pIP4MAC2.ip4Header.SRCIP[0]) && (nsi_binary[1] == pIP4MAC2.ip4Header.SRCIP[1]) && (nsi_binary[2] == pIP4MAC2.ip4Header.SRCIP[2]) && (nsi_binary[3] == pIP4MAC2.ip4Header.SRCIP[3]))) {
-                pIP4MAC2.ip4Header.SRCIP[0] = ndi_binary[0];
-                pIP4MAC2.ip4Header.SRCIP[1] = ndi_binary[1];
-                pIP4MAC2.ip4Header.SRCIP[2] = ndi_binary[2];
-                pIP4MAC2.ip4Header.SRCIP[3] = ndi_binary[3];
-                checksum = 0;
-                pIP4MAC2.ip4Header.CheckSum = 0;
-                for (int cnt=0;cnt<10;cnt++){
-                    //fprintf(stdout, "Checksum(%d) : %04x\n",cnt,checksum);
-                    if (cnt == 5) {continue;}
-                    checksum += htons((*(short*)((&pIP4MAC2.ip4Header.VerAndHeaderLength) + (cnt * 2))));
-                    if (((checksum >> 16) & 0xFFFF)){checksum = ((checksum & 0xFFFF) + ((checksum >> 16) & 0xFFFF)) & 0xFFFF;}
+                if (flagofsrcnochange == false) {
+                    pIP4MAC2.ip4Header.SRCIP[0] = ndi_binary[0];
+                    pIP4MAC2.ip4Header.SRCIP[1] = ndi_binary[1];
+                    pIP4MAC2.ip4Header.SRCIP[2] = ndi_binary[2];
+                    pIP4MAC2.ip4Header.SRCIP[3] = ndi_binary[3];
+                    calculateipchksum((IP4Header*)&pIP4MAC2.ip4Header);
                 }
-                pIP4MAC2.ip4Header.CheckSum = ~(htons((checksum & 0xFFFF) + ((checksum >> 16) & 0xFFFF)));
             } else if (((ndi_binary[0] == pIP4MAC2.ip4Header.DSTIP[0]) && (ndi_binary[1] == pIP4MAC2.ip4Header.DSTIP[1]) && (ndi_binary[2] == pIP4MAC2.ip4Header.DSTIP[2]) && (ndi_binary[3] == pIP4MAC2.ip4Header.DSTIP[3]))) {
                 pIP4MAC2.ip4Header.DSTIP[0] = nsi_binary[0];
                 pIP4MAC2.ip4Header.DSTIP[1] = nsi_binary[1];
                 pIP4MAC2.ip4Header.DSTIP[2] = nsi_binary[2];
                 pIP4MAC2.ip4Header.DSTIP[3] = nsi_binary[3];
-                checksum = 0;
-                pIP4MAC2.ip4Header.CheckSum = 0;
-                for (int cnt=0;cnt<10;cnt++){
-                    //fprintf(stdout, "Checksum(%d) : %04x\n",cnt,checksum);
-                    if (cnt == 5) {continue;}
-                    checksum += htons((*(short*)((&pIP4MAC2.ip4Header.VerAndHeaderLength) + (cnt * 2))));
-                    if (((checksum >> 16) & 0xFFFF)){checksum = ((checksum & 0xFFFF) + ((checksum >> 16) & 0xFFFF)) & 0xFFFF;}
-                }
-                pIP4MAC2.ip4Header.CheckSum = ~(htons((checksum & 0xFFFF) + ((checksum >> 16) & 0xFFFF)));
+                calculateipchksum((IP4Header*)&pIP4MAC2.ip4Header);
+            } else {
+                flagofsrcnochange = false;
             }
 #endif
             sockAddr.sll_ifindex = ifindex4in;
@@ -844,6 +952,7 @@ gettingpacket:
         memcpy(buf,ghybuf,sizeof(MACHeader));
 pMAC3_maniplation:
         transmac_ip_success = false;
+        if (!FD_ISSET(ipSock_out.fdSock, &fds)){ goto pMAC3_maniplation_; }
         sockAddr_out.sll_protocol = htons(ETH_P_ALL);
         if (-1 == (ghzsiz = recvfrom(ipSock_out.fdSock, ghzbuf, sizeof(ghzbuf), 0, (struct sockaddr *)&sockAddr_out, (socklen_t*)&sockAddr_outsiz))) {
             perror("Receiveing failure");
@@ -854,6 +963,9 @@ pMAC3_maniplation:
         sockAddr_out.sll_ifindex = ifindex4out;
         if (!((sockAddr_out.sll_protocol == htons(ETH_P_ARP)) || (sockAddr_out.sll_protocol == htons(ETH_P_IP)))){goto pMAC3_maniplation_;}
         if ((((pIP4MAC3.ip4Header.SRCIP[0] & mysubnetmask[0]) == (pMAC.arpHeader.SenderIP[0] & mysubnetmask[0])) && ((pIP4MAC3.ip4Header.SRCIP[1] & mysubnetmask[1]) == (pMAC.arpHeader.SenderIP[1] & mysubnetmask[1])) && ((pIP4MAC3.ip4Header.SRCIP[2] & mysubnetmask[2]) == (pMAC.arpHeader.SenderIP[2] & mysubnetmask[2])) && ((pIP4MAC3.ip4Header.SRCIP[3] & mysubnetmask[3]) == (pMAC.arpHeader.SenderIP[3] & mysubnetmask[3]))) && ((((pMAC3.destMACAddr[0] == mtm[0]) && (pMAC3.destMACAddr[1] == mtm[1]) && (pMAC3.destMACAddr[2] == mtm[2]) && (pMAC3.destMACAddr[3] == mtm[3]) && (pMAC3.destMACAddr[4] == mtm[4]) && (pMAC3.destMACAddr[5] == mtm[5]))) && (sockAddr_out.sll_protocol == htons(ETH_P_IP)) && (nomeflag == false || ((*(unsigned int*)&mti_binary) != (*(unsigned int*)&pIP4MAC3.ip4Header.DSTIP))))){
+            if (sendonly){ goto pMAC3_maniplation_; }
+            //if (unfunctedpart2 == true) { unfunctedpart2 = false; goto pMAC3_maniplation_; }
+            //unfunctedpart2 = true;
             memcpy(buf,ghybuf,sizeof(MACHeader));
             memcpy(pIP4MAC3.srcMACAddr, pMAC.srcMACAddr, sizeof(pMAC.srcMACAddr));
             memcpy(pIP4MAC3.destMACAddr, pMAC.destMACAddr, sizeof(pMAC.srcMACAddr));
@@ -864,29 +976,18 @@ pMAC3_maniplation:
                 pIP4MAC3.ip4Header.DSTIP[1] = nsi_binary[1];
                 pIP4MAC3.ip4Header.DSTIP[2] = nsi_binary[2];
                 pIP4MAC3.ip4Header.DSTIP[3] = nsi_binary[3];
-                pIP4MAC3.ip4Header.CheckSum = 0;
-                checksum = 0;
-                for (int cnt=0;cnt<10;cnt++){
-                    //fprintf(stdout, "Checksum(%d) : %04x\n",cnt,checksum);
-                    if (cnt == 5) {continue;}
-                    checksum += htons((*(short*)((&pIP4MAC3.ip4Header.VerAndHeaderLength) + (cnt * 2))));
-                    if (((checksum >> 16) & 0xFFFF)){checksum = ((checksum & 0xFFFF) + ((checksum >> 16) & 0xFFFF)) & 0xFFFF;}
-                }
-                pIP4MAC3.ip4Header.CheckSum = ~(htons((checksum & 0xFFFF) + ((checksum >> 16) & 0xFFFF)));
+                calculateipchksum((IP4Header*)&pIP4MAC3.ip4Header);
+                flagofsrcnochange = false;
             } else if (((nsi_binary[0] == pIP4MAC3.ip4Header.SRCIP[0]) && (nsi_binary[1] == pIP4MAC3.ip4Header.SRCIP[1]) && (nsi_binary[2] == pIP4MAC3.ip4Header.SRCIP[2]) && (nsi_binary[3] == pIP4MAC3.ip4Header.SRCIP[3]))) {
                 pIP4MAC3.ip4Header.SRCIP[0] = ndi_binary[0];
                 pIP4MAC3.ip4Header.SRCIP[1] = ndi_binary[1];
                 pIP4MAC3.ip4Header.SRCIP[2] = ndi_binary[2];
                 pIP4MAC3.ip4Header.SRCIP[3] = ndi_binary[3];
-                pIP4MAC3.ip4Header.CheckSum = 0;
-                checksum = 0;
-                for (int cnt=0;cnt<10;cnt++){
-                    //fprintf(stdout, "Checksum(%d) : %04x\n",cnt,checksum);
-                    if (cnt == 5) {continue;}
-                    checksum += htons((*(short*)((&pIP4MAC3.ip4Header.VerAndHeaderLength) + (cnt * 2))));
-                    if (((checksum >> 16) & 0xFFFF)){checksum = ((checksum & 0xFFFF) + ((checksum >> 16) & 0xFFFF)) & 0xFFFF;}
-                }
-                pIP4MAC3.ip4Header.CheckSum = ~(htons((checksum & 0xFFFF) + ((checksum >> 16) & 0xFFFF)));
+                calculateipchksum((IP4Header*)&pIP4MAC3.ip4Header);
+            } else if (((nsi_binary[0] == pIP4MAC3.ip4Header.DSTIP[0]) && (nsi_binary[1] == pIP4MAC3.ip4Header.DSTIP[1]) && (nsi_binary[2] == pIP4MAC3.ip4Header.DSTIP[2]) && (nsi_binary[3] == pIP4MAC3.ip4Header.DSTIP[3]))) {
+                flagofsrcnochange = true;
+            } else {
+                flagofsrcnochange = false;
             }
 #endif
             sockAddr.sll_ifindex = ifindex4in;
@@ -926,6 +1027,7 @@ pMAC3_maniplation_:
         sockAddr_out.sll_protocol = htons(ETH_P_ALL);
         //usleep(1);
         //goto gettingpacket;
+        //usleep((rand() % 19) + 2);
         if (enabledthepooling){
             if ((timeofpooling + 1) < time(0)){
                 timeofpooling = time(0);
