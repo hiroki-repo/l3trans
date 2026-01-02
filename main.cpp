@@ -827,7 +827,6 @@ int main(int argc, char* argv[]) {
 
     bool unfunctedpart = false;
     bool unfunctedpart2 = false;
-    bool flagofsrcnochange = false;
     srand((unsigned)time(NULL));
 
 #if 0
@@ -904,21 +903,17 @@ gettingpacket:
 #if 1
             //pIP4MAC2.ip4Header.TTL--;
             if (((nsi_binary[0] == pIP4MAC2.ip4Header.SRCIP[0]) && (nsi_binary[1] == pIP4MAC2.ip4Header.SRCIP[1]) && (nsi_binary[2] == pIP4MAC2.ip4Header.SRCIP[2]) && (nsi_binary[3] == pIP4MAC2.ip4Header.SRCIP[3]))) {
-                if (flagofsrcnochange == false) {
-                    pIP4MAC2.ip4Header.SRCIP[0] = ndi_binary[0];
-                    pIP4MAC2.ip4Header.SRCIP[1] = ndi_binary[1];
-                    pIP4MAC2.ip4Header.SRCIP[2] = ndi_binary[2];
-                    pIP4MAC2.ip4Header.SRCIP[3] = ndi_binary[3];
-                    calculateipchksum((IP4Header*)&pIP4MAC2.ip4Header);
-                }
+                pIP4MAC2.ip4Header.SRCIP[0] = ndi_binary[0];
+                pIP4MAC2.ip4Header.SRCIP[1] = ndi_binary[1];
+                pIP4MAC2.ip4Header.SRCIP[2] = ndi_binary[2];
+                pIP4MAC2.ip4Header.SRCIP[3] = ndi_binary[3];
+                calculateipchksum((IP4Header*)&pIP4MAC2.ip4Header);
             } else if (((ndi_binary[0] == pIP4MAC2.ip4Header.DSTIP[0]) && (ndi_binary[1] == pIP4MAC2.ip4Header.DSTIP[1]) && (ndi_binary[2] == pIP4MAC2.ip4Header.DSTIP[2]) && (ndi_binary[3] == pIP4MAC2.ip4Header.DSTIP[3]))) {
                 pIP4MAC2.ip4Header.DSTIP[0] = nsi_binary[0];
                 pIP4MAC2.ip4Header.DSTIP[1] = nsi_binary[1];
                 pIP4MAC2.ip4Header.DSTIP[2] = nsi_binary[2];
                 pIP4MAC2.ip4Header.DSTIP[3] = nsi_binary[3];
                 calculateipchksum((IP4Header*)&pIP4MAC2.ip4Header);
-            } else {
-                flagofsrcnochange = false;
             }
 #endif
             sockAddr.sll_ifindex = ifindex4in;
@@ -977,17 +972,12 @@ pMAC3_maniplation:
                 pIP4MAC3.ip4Header.DSTIP[2] = nsi_binary[2];
                 pIP4MAC3.ip4Header.DSTIP[3] = nsi_binary[3];
                 calculateipchksum((IP4Header*)&pIP4MAC3.ip4Header);
-                flagofsrcnochange = false;
             } else if (((nsi_binary[0] == pIP4MAC3.ip4Header.SRCIP[0]) && (nsi_binary[1] == pIP4MAC3.ip4Header.SRCIP[1]) && (nsi_binary[2] == pIP4MAC3.ip4Header.SRCIP[2]) && (nsi_binary[3] == pIP4MAC3.ip4Header.SRCIP[3]))) {
                 pIP4MAC3.ip4Header.SRCIP[0] = ndi_binary[0];
                 pIP4MAC3.ip4Header.SRCIP[1] = ndi_binary[1];
                 pIP4MAC3.ip4Header.SRCIP[2] = ndi_binary[2];
                 pIP4MAC3.ip4Header.SRCIP[3] = ndi_binary[3];
                 calculateipchksum((IP4Header*)&pIP4MAC3.ip4Header);
-            } else if (((nsi_binary[0] == pIP4MAC3.ip4Header.DSTIP[0]) && (nsi_binary[1] == pIP4MAC3.ip4Header.DSTIP[1]) && (nsi_binary[2] == pIP4MAC3.ip4Header.DSTIP[2]) && (nsi_binary[3] == pIP4MAC3.ip4Header.DSTIP[3]))) {
-                flagofsrcnochange = true;
-            } else {
-                flagofsrcnochange = false;
             }
 #endif
             sockAddr.sll_ifindex = ifindex4in;
