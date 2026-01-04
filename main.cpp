@@ -1002,7 +1002,31 @@ pMAC3_maniplation:
             memcpy(pIP4MAC3.destMACAddr, pMAC.destMACAddr, sizeof(pMAC.srcMACAddr));
 #if 1
             //pIP4MAC3.ip4Header.TTL--;
-            if (((ndi_binary[0] == pIP4MAC3.ip4Header.SRCIP[0]) && (ndi_binary[1] == pIP4MAC3.ip4Header.SRCIP[1]) && (ndi_binary[2] == pIP4MAC3.ip4Header.SRCIP[2]) && (ndi_binary[3] == pIP4MAC3.ip4Header.SRCIP[3]))) {
+            if (nataddr4host == true && (pIP4MAC3.ip4Header.SRCIP[0] == ndi_binary[0] && pIP4MAC3.ip4Header.SRCIP[1] == ndi_binary[1] && pIP4MAC3.ip4Header.SRCIP[2] == ndi_binary[2] && pIP4MAC3.ip4Header.SRCIP[3] == ndi_binary[3]) && (pIP4MAC3.ip4Header.DSTIP[0] == nsi_binary[0] && pIP4MAC3.ip4Header.DSTIP[1] == nsi_binary[1] && pIP4MAC3.ip4Header.DSTIP[2] == nsi_binary[2] && pIP4MAC3.ip4Header.DSTIP[3] == nsi_binary[3])){
+                memcpy(pIP4MAC3.srcMACAddr, mtm, sizeof(pMAC.srcMACAddr));
+                memcpy(pIP4MAC3.destMACAddr, msm, sizeof(pMAC.srcMACAddr));
+                pIP4MAC3.ip4Header.SRCIP[0] = nsi_binary[0];
+                pIP4MAC3.ip4Header.SRCIP[1] = nsi_binary[1];
+                pIP4MAC3.ip4Header.SRCIP[2] = nsi_binary[2];
+                pIP4MAC3.ip4Header.SRCIP[3] = nsi_binary[3];
+                pIP4MAC3.ip4Header.DSTIP[0] = ndi_binary[0];
+                pIP4MAC3.ip4Header.DSTIP[1] = ndi_binary[1];
+                pIP4MAC3.ip4Header.DSTIP[2] = ndi_binary[2];
+                pIP4MAC3.ip4Header.DSTIP[3] = ndi_binary[3];
+                calculateipchksum((IP4Header*)&pIP4MAC3.ip4Header);
+                sockAddr.sll_ifindex = ifindex4in;
+                sockAddr_out_arp.sll_ifindex = ifindex4out;
+                sockAddrghx.sll_ifindex = ifindex4in;
+                sockAddr_out.sll_ifindex = ifindex4out;
+                if (-1 == sendto(ipSock_out.fdSock, ghzbuf, (((ghzsiz & 0xFFFF) < 1514) ? ghxsiz : 1514), 0, (struct sockaddr *)&sockAddr_out, sizeof(sockAddr_out))) {
+                    perror("Sending failure");
+                } else { transmac_ip_success = true; }
+                memset(ghxbuf,0,sizeof(ghxbuf));
+                //memset(ghxbuf,0,1514);
+                memcpy(buf,ghybuf,sizeof(MACHeader));
+                sockAddrghx.sll_protocol = htons(ETH_P_ALL);
+                goto pMAC3_maniplation_finishsend;
+            } else if (((ndi_binary[0] == pIP4MAC3.ip4Header.SRCIP[0]) && (ndi_binary[1] == pIP4MAC3.ip4Header.SRCIP[1]) && (ndi_binary[2] == pIP4MAC3.ip4Header.SRCIP[2]) && (ndi_binary[3] == pIP4MAC3.ip4Header.SRCIP[3]))) {
                 pIP4MAC3.ip4Header.SRCIP[0] = nsi_binary[0];
                 pIP4MAC3.ip4Header.SRCIP[1] = nsi_binary[1];
                 pIP4MAC3.ip4Header.SRCIP[2] = nsi_binary[2];
@@ -1058,6 +1082,7 @@ pMAC3_maniplation:
             } else { transmac_ip_success = true; }
             sockAddr_out.sll_protocol = htons(ETH_P_ALL);
         }
+pMAC3_maniplation_finishsend:
         memcpy(buf,ghybuf,sizeof(MACHeader));
 pMAC3_maniplation_:
         count4retry2 = 0;
