@@ -121,6 +121,10 @@ unsigned long timeofpooling;
 
 bool nataddr4host = false;
 
+unsigned char ghxbuf[65536]{'\0'};
+unsigned char ghzbuf[65536]{'\0'};
+unsigned char ghybuf[sizeof(MACHeader)]{'\0'};
+
 template <typename T>
 bool isEmpty(const T p, int c) {
     for (int i = 0; i < c; i++) {
@@ -360,7 +364,7 @@ void listInterfaces() {
 
 struct PseudoIP4HeaderandIPX{
     PseudoIP4Header pseudoIP4Header;
-    unsigned char Payload[1600]{0};
+    unsigned char Payload[65536-12]{0};
 };
 
 PseudoIP4HeaderandIPX pseudoIP4HeaderandIPX;
@@ -786,9 +790,9 @@ int main(int argc, char* argv[]) {
     }
 
     unsigned char buf[sizeof(MACHeader)]{'\0'};
-    unsigned char ghxbuf[65536]{'\0'};
+    /*unsigned char ghxbuf[65536]{'\0'};
     unsigned char ghybuf[sizeof(MACHeader)]{'\0'};
-    unsigned char ghzbuf[65536]{'\0'};
+    unsigned char ghzbuf[65536]{'\0'};*/
 
     {
         //construct arp response
