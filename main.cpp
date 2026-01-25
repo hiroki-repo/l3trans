@@ -685,6 +685,15 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
 
+    if (-1 == ioctl(ipSock.fdSock, SIOCGIFMTU, &ifreq)) {
+        perror("SIOCGIFMTU");
+        exit(1);
+    }
+    if (-1 == ioctl(ipSock_out.fdSock, SIOCGIFMTU, &ifreq_out)) {
+        perror("SIOCGIFMTU");
+        exit(1);
+    }
+
     struct sockaddr_ll sockAddr;
     sockAddr.sll_family = AF_PACKET;
     sockAddr.sll_protocol = htons(ETH_P_ARP);
@@ -709,28 +718,11 @@ int main(int argc, char* argv[]) {
         perror("SIOCGIFINDEX");
         exit(1);
     }
-
-    if (-1 == ioctl(ipSock.fdSock, SIOCGIFMTU, &ifreq)) {
-        perror("SIOCGIFMTU");
-        exit(1);
-    }
-    if (-1 == ioctl(ipSock_out.fdSock, SIOCGIFMTU, &ifreq_out)) {
-        perror("SIOCGIFMTU");
-        exit(1);
-    }
     if (!(ifreq.ifr_flags & IFF_BROADCAST) && (ifreq.ifr_flags & IFF_POINTOPOINT) && (ifreq.ifr_flags & IFF_NOARP)){
         iInteristun = true;
-    } else if (!(ioctl(ipSock.fdSock, TUNGETIFF, &ifr_typeoftun_0) < 0)){
-        if (ifr_typeoftun_0.ifr_flags == IFF_TUN){
-            iInteristun = true;
-        }
     }
     if (!(ifreq_out.ifr_flags & IFF_BROADCAST) && (ifreq_out.ifr_flags & IFF_POINTOPOINT) && (ifreq_out.ifr_flags & IFF_NOARP)){
         oInteristun = true;
-    } else if (!(ioctl(ipSock_out.fdSock, TUNGETIFF, &ifr_typeoftun_1) < 0)){
-        if (ifr_typeoftun_1.ifr_flags == IFF_TUN){
-            oInteristun = true;
-        }
     }
     ifindex4in = ifreq.ifr_ifindex;
     ifindex4out = ifreq_out.ifr_ifindex;
@@ -985,7 +977,7 @@ gettingpacket:
             sockAddr_out_arp.sll_ifindex = ifindex4out;
             sockAddrghx.sll_ifindex = ifindex4in;
             sockAddr_out.sll_ifindex = ifindex4out;
-            if (-1 == sendto(ipSock_out.fdSock, ghxbuf + (oInteristun ? 14 : 0), (((ghxsiz & 0xFFFF) < (ifreq_out.ifr_mtu + (oInteristun ? 0 : 14))) ? ghxsiz : (ifreq_out.ifr_mtu + (oInteristun ? 0 : 14))), 0, (struct sockaddr *)&sockAddr_out, sizeof(sockAddr_out))) {
+            if (-1 == sendto(ipSock_out.fdSock, ghxbuf + (oInteristun ? 14 : 0), (((ghxsiz & 0xFFFF) < (ifreq_out.ifr_mtu + (oInteristun ? 0 : 14))) ? (ghxsiz & 0xFFFF) : (ifreq_out.ifr_mtu + (oInteristun ? 0 : 14))), 0, (struct sockaddr *)&sockAddr_out, sizeof(sockAddr_out))) {
                 perror("Sending failure");
             } else { transmac_ip_success = true; }
             memset(ghxbuf,0,sizeof(ghxbuf));
@@ -993,7 +985,7 @@ gettingpacket:
             memcpy(buf,ghybuf,sizeof(MACHeader));
             sockAddrghx.sll_protocol = htons(ETH_P_ALL);
         } else if ((((nataddr4host == false) && (((pMAC2.arpHeader.TargetIP[0] & mysubnetmask[0]) == (pMAC.arpHeader.SenderIP[0] & mysubnetmask[0])) && ((pMAC2.arpHeader.TargetIP[1] & mysubnetmask[1]) == (pMAC.arpHeader.SenderIP[1] & mysubnetmask[1])) && ((pMAC2.arpHeader.TargetIP[2] & mysubnetmask[2]) == (pMAC.arpHeader.SenderIP[2] & mysubnetmask[2])) && ((pMAC2.arpHeader.TargetIP[3] & mysubnetmask[3]) == (pMAC.arpHeader.SenderIP[3] & mysubnetmask[3])))) || ((nataddr4host == true) && (((pMAC2.arpHeader.TargetIP[0]) == (pMAC.arpHeader.SenderIP[0])) && ((pMAC2.arpHeader.TargetIP[1]) == (pMAC.arpHeader.SenderIP[1])) && ((pMAC2.arpHeader.TargetIP[2]) == (pMAC.arpHeader.SenderIP[2])) && ((pMAC2.arpHeader.TargetIP[3]) == (pMAC.arpHeader.SenderIP[3]))))) && ((((pMAC2.destMACAddr[0] == pMAC.srcMACAddr[0]) && (pMAC2.destMACAddr[1] == pMAC.srcMACAddr[1]) && (pMAC2.destMACAddr[2] == pMAC.srcMACAddr[2]) && (pMAC2.destMACAddr[3] == pMAC.srcMACAddr[3]) && (pMAC2.destMACAddr[4] == pMAC.srcMACAddr[4]) && (pMAC2.destMACAddr[5] == pMAC.srcMACAddr[5])) || ((pMAC2.destMACAddr[0] & 0x01))) && (sockAddrghx.sll_protocol == htons(ETH_P_ARP)) && (nomeflag == false || ((*(unsigned int*)&myinterfaceip) != (*(unsigned int*)&pMAC2.arpHeader.SenderIP))))){
-            //memcpy(pMAC.arpHeader.SenderIP, pMAC2.arpHeader.TargetIP, sizeof(in_addr_t));
+            memcpy(pMAC.arpHeader.SenderIP, pMAC2.arpHeader.TargetIP, sizeof(in_addr_t));
             memcpy(pMAC.destMACAddr, pMAC2.srcMACAddr, sizeof(pMAC.destMACAddr));
             memcpy(pMAC.arpHeader.TargetMAC, pMAC2.arpHeader.SenderMAC, sizeof(pMAC.arpHeader.TargetMAC));
             memcpy(pMAC.arpHeader.TargetIP, pMAC2.arpHeader.SenderIP, sizeof(in_addr_t));
@@ -1060,7 +1052,7 @@ pMAC3_maniplation:
                 sockAddr_out_arp.sll_ifindex = ifindex4out;
                 sockAddrghx.sll_ifindex = ifindex4in;
                 sockAddr_out.sll_ifindex = ifindex4out;
-                if (-1 == sendto(ipSock_out.fdSock, ghzbuf + (oInteristun ? 14 : 0), (((ghzsiz & 0xFFFF) < (ifreq_out.ifr_mtu + (oInteristun ? 0 : 14))) ? ghzsiz : (ifreq_out.ifr_mtu + (oInteristun ? 0 : 14))), 0, (struct sockaddr *)&sockAddr_out, sizeof(sockAddr_out))) {
+                if (-1 == sendto(ipSock_out.fdSock, ghzbuf + (oInteristun ? 14 : 0), (((ghzsiz & 0xFFFF) < (ifreq_out.ifr_mtu + (oInteristun ? 0 : 14))) ? (ghzsiz & 0xFFFF) : (ifreq_out.ifr_mtu + (oInteristun ? 0 : 14))), 0, (struct sockaddr *)&sockAddr_out, sizeof(sockAddr_out))) {
                     perror("Sending failure");
                 } else { transmac_ip_success = true; }
                 memset(ghxbuf,0,sizeof(ghxbuf));
@@ -1098,7 +1090,7 @@ pMAC3_maniplation:
             sockAddr_out_arp.sll_ifindex = ifindex4out;
             sockAddrghx.sll_ifindex = ifindex4in;
             sockAddr_out.sll_ifindex = ifindex4out;
-            if (-1 == sendto(ipSock.fdSock, ghzbuf + (iInteristun ? 14 : 0), (((ghzsiz & 0xFFFF) < (ifreq.ifr_mtu + (iInteristun ? 0 : 14))) ? ghzsiz : (ifreq.ifr_mtu + (iInteristun ? 0 : 14))), 0, (struct sockaddr *)&sockAddr, sizeof(sockAddr))) {
+            if (-1 == sendto(ipSock.fdSock, ghzbuf + (iInteristun ? 14 : 0), (((ghzsiz & 0xFFFF) < (ifreq.ifr_mtu + (iInteristun ? 0 : 14))) ? (ghzsiz & 0xFFFF) : (ifreq.ifr_mtu + (iInteristun ? 0 : 14))), 0, (struct sockaddr *)&sockAddr, sizeof(sockAddr))) {
                 perror("Sending failure");
             } else { transmac_ip_success = true; }
             memset(ghzbuf,0,sizeof(ghzbuf));
