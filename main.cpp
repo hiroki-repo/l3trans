@@ -685,15 +685,6 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
 
-    if (-1 == ioctl(ipSock.fdSock, SIOCGIFMTU, &ifreq)) {
-        perror("SIOCGIFMTU");
-        exit(1);
-    }
-    if (-1 == ioctl(ipSock_out.fdSock, SIOCGIFMTU, &ifreq_out)) {
-        perror("SIOCGIFMTU");
-        exit(1);
-    }
-
     struct sockaddr_ll sockAddr;
     sockAddr.sll_family = AF_PACKET;
     sockAddr.sll_protocol = htons(ETH_P_ARP);
@@ -809,6 +800,15 @@ int main(int argc, char* argv[]) {
             fprintf(stdout, "Can not found %s mac address from arp cache, Please try to ping %s firstly\n", rti, rti);
             exit(1);
         }
+    }
+
+    if (-1 == ioctl(ipSock.fdSock, SIOCGIFMTU, &ifreq)) {
+        perror("SIOCGIFMTU");
+        exit(1);
+    }
+    if (-1 == ioctl(ipSock_out.fdSock, SIOCGIFMTU, &ifreq_out)) {
+        perror("SIOCGIFMTU");
+        exit(1);
     }
 
     unsigned char buf[sizeof(MACHeader)]{'\0'};
