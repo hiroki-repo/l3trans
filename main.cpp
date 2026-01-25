@@ -18,6 +18,7 @@
 #include <linux/if_packet.h>
 #include <linux/if_ether.h>
 #include <linux/if_arp.h>
+#include <linux/if_tun.h>
 
 #include <vector>
 #include <string>
@@ -662,11 +663,17 @@ int main(int argc, char* argv[]) {
 
     struct ifreq ifreq;
     struct ifreq ifreq_out;
+    struct ifreq ifr_typeoftun_0;
+    struct ifreq ifr_typeoftun_1;
+    bool iInteristun = false;
+    bool oInteristun = false;
     int ifindex4in = 0;
     int ifindex4out = 0;
     //memset(&ifreq_out, 0, sizeof(ifreq_out));
     strcpy(ifreq.ifr_name, iInterfaceName);
     strcpy(ifreq_out.ifr_name, oInterfaceName);
+    strcpy(ifr_typeoftun_0.ifr_name, iInterfaceName);
+    strcpy(ifr_typeoftun_1.ifr_name, oInterfaceName);
     ipSock = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
     if (ipSock == -1) {
         perror("socket():");
@@ -701,6 +708,20 @@ int main(int argc, char* argv[]) {
     if (-1 == ioctl(ipSock_out.fdSock, SIOCGIFINDEX, &ifreq_out)) {
         perror("SIOCGIFINDEX");
         exit(1);
+    }
+    if (!(ifreq.ifr_flags & IFF_BROADCAST) && (ifreq.ifr_flags & IFF_POINTOPOINT) && (ifreq.ifr_flags & IFF_NOARP)){
+        iInteristun = true;
+    } else if (!(ioctl(ipSock.fdSock, TUNGETIFF, &ifr_typeoftun_0) < 0)){
+        if (ifr_typeoftun_0.ifr_flags == IFF_TUN){
+            iInteristun = true;
+        }
+    }
+    if (!(ifreq_out.ifr_flags & IFF_BROADCAST) && (ifreq_out.ifr_flags & IFF_POINTOPOINT) && (ifreq_out.ifr_flags & IFF_NOARP)){
+        oInteristun = true;
+    } else if (!(ioctl(ipSock_out.fdSock, TUNGETIFF, &ifr_typeoftun_1) < 0)){
+        if (ifr_typeoftun_1.ifr_flags == IFF_TUN){
+            oInteristun = true;
+        }
     }
     ifindex4in = ifreq.ifr_ifindex;
     ifindex4out = ifreq_out.ifr_ifindex;
@@ -783,7 +804,7 @@ int main(int argc, char* argv[]) {
     if (isEmpty(rtm, sizeof(rtm))) {
         //to do: get mac address through to send arp request and receive the response
 //        getARPReplyMAC(ipSock.fdSock, iInterfaceName, rti);
-        if (isEmpty(rtm, sizeof(rtm))) {
+        if (isEmpty(rtm, sizeof(rtm)) && iInteristun == false) {
             fprintf(stdout, "Can not found %s mac address from arp cache, Please try to ping %s firstly\n", rti, rti);
             exit(1);
         }
@@ -900,8 +921,14 @@ gettingpacket:
         sockAddr_out_arp.sll_ifindex = ifindex4out;
         sockAddrghx.sll_ifindex = ifindex4in;
         sockAddr_out.sll_ifindex = ifindex4out;
-        if (-1 == (ghxsiz = recvfrom(ipSock.fdSock, ghxbuf, sizeof(ghxbuf), 0, (struct sockaddr *)&sockAddrghx, (socklen_t*)&sockAddrghxsiz))) {
+        if (-1 == (ghxsiz = recvfrom(ipSock.fdSock, ghxbuf + (iInteristun ? 14 : 0), sizeof(ghxbuf), 0, (struct sockaddr *)&sockAddrghx, (socklen_t*)&sockAddrghxsiz))) {
             perror("Receiveing failure(iInterface)");
+        }
+        if (iInteristun == true){
+            sockAddrghx.sll_protocol == htons(ETH_P_IP);
+            memcpy(pIP4MAC2.srcMACAddr, pMAC.destMACAddr, sizeof(pMAC.srcMACAddr));
+            memcpy(pIP4MAC2.destMACAddr, pMAC.srcMACAddr, sizeof(pMAC.srcMACAddr));
+            pIP4MAC2.upperType = htons(ETH_P_IP);
         }
         sockAddr.sll_ifindex = ifindex4in;
         sockAddr_out_arp.sll_ifindex = ifindex4out;
@@ -949,7 +976,7 @@ gettingpacket:
             sockAddr_out_arp.sll_ifindex = ifindex4out;
             sockAddrghx.sll_ifindex = ifindex4in;
             sockAddr_out.sll_ifindex = ifindex4out;
-            if (-1 == sendto(ipSock_out.fdSock, ghxbuf, (((ghxsiz & 0xFFFF) < 1514) ? ghxsiz : 1514), 0, (struct sockaddr *)&sockAddr_out, sizeof(sockAddr_out))) {
+            if (-1 == sendto(ipSock_out.fdSock, ghxbuf + (oInteristun ? 14 : 0), (((ghxsiz & 0xFFFF) < 1514) ? ghxsiz : 1514), 0, (struct sockaddr *)&sockAddr_out, sizeof(sockAddr_out))) {
                 perror("Sending failure");
             } else { transmac_ip_success = true; }
             memset(ghxbuf,0,sizeof(ghxbuf));
@@ -982,8 +1009,14 @@ pMAC3_maniplation:
         sockAddr_out_arp.sll_ifindex = ifindex4out;
         sockAddrghx.sll_ifindex = ifindex4in;
         sockAddr_out.sll_ifindex = ifindex4out;
-        if (-1 == (ghzsiz = recvfrom(ipSock_out.fdSock, ghzbuf, sizeof(ghzbuf), 0, (struct sockaddr *)&sockAddr_out, (socklen_t*)&sockAddr_outsiz))) {
+        if (-1 == (ghzsiz = recvfrom(ipSock_out.fdSock, ghzbuf + (oInteristun ? 14 : 0), sizeof(ghzbuf), 0, (struct sockaddr *)&sockAddr_out, (socklen_t*)&sockAddr_outsiz))) {
             perror("Receiveing failure(oInterface)");
+        }
+        if (oInteristun == true){
+            sockAddr_out.sll_protocol == htons(ETH_P_IP);
+            memcpy(pIP4MAC3.srcMACAddr, msm, sizeof(pMAC.srcMACAddr));
+            memcpy(pIP4MAC3.destMACAddr, mtm, sizeof(pMAC.srcMACAddr));
+            pIP4MAC3.upperType = htons(ETH_P_IP);
         }
         sockAddr.sll_ifindex = ifindex4in;
         sockAddr_out_arp.sll_ifindex = ifindex4out;
@@ -1018,7 +1051,7 @@ pMAC3_maniplation:
                 sockAddr_out_arp.sll_ifindex = ifindex4out;
                 sockAddrghx.sll_ifindex = ifindex4in;
                 sockAddr_out.sll_ifindex = ifindex4out;
-                if (-1 == sendto(ipSock_out.fdSock, ghzbuf, (((ghzsiz & 0xFFFF) < 1514) ? ghxsiz : 1514), 0, (struct sockaddr *)&sockAddr_out, sizeof(sockAddr_out))) {
+                if (-1 == sendto(ipSock_out.fdSock, ghzbuf + (oInteristun ? 14 : 0), (((ghzsiz & 0xFFFF) < 1514) ? ghxsiz : 1514), 0, (struct sockaddr *)&sockAddr_out, sizeof(sockAddr_out))) {
                     perror("Sending failure");
                 } else { transmac_ip_success = true; }
                 memset(ghxbuf,0,sizeof(ghxbuf));
@@ -1056,7 +1089,7 @@ pMAC3_maniplation:
             sockAddr_out_arp.sll_ifindex = ifindex4out;
             sockAddrghx.sll_ifindex = ifindex4in;
             sockAddr_out.sll_ifindex = ifindex4out;
-            if (-1 == sendto(ipSock.fdSock, ghzbuf, (((ghzsiz & 0xFFFF) < 1514) ? ghzsiz : 1514), 0, (struct sockaddr *)&sockAddr, sizeof(sockAddr))) {
+            if (-1 == sendto(ipSock.fdSock, ghzbuf + (iInteristun ? 14 : 0), (((ghzsiz & 0xFFFF) < 1514) ? ghzsiz : 1514), 0, (struct sockaddr *)&sockAddr, sizeof(sockAddr))) {
                 perror("Sending failure");
             } else { transmac_ip_success = true; }
             memset(ghzbuf,0,sizeof(ghzbuf));
