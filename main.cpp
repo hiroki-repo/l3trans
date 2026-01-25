@@ -930,7 +930,7 @@ gettingpacket:
         sockAddr_out_arp.sll_ifindex = ifindex4out;
         sockAddrghx.sll_ifindex = ifindex4in;
         sockAddr_out.sll_ifindex = ifindex4out;
-        if (-1 == (ghxsiz = recvfrom(ipSock.fdSock, ghxbuf + (iInteristun ? 14 : 0), sizeof(ghxbuf), 0, (struct sockaddr *)&sockAddrghx, (socklen_t*)&sockAddrghxsiz))) {
+        if (-1 == (ghxsiz = recvfrom(ipSock.fdSock, ghxbuf + (iInteristun ? 0 : 14), sizeof(ghxbuf), 0, (struct sockaddr *)&sockAddrghx, (socklen_t*)&sockAddrghxsiz))) {
             perror("Receiveing failure(iInterface)");
         }
         if (iInteristun == true){
@@ -985,7 +985,7 @@ gettingpacket:
             sockAddr_out_arp.sll_ifindex = ifindex4out;
             sockAddrghx.sll_ifindex = ifindex4in;
             sockAddr_out.sll_ifindex = ifindex4out;
-            if (-1 == sendto(ipSock_out.fdSock, ghxbuf + (oInteristun ? 14 : 0), (((ghxsiz & 0xFFFF) < (ifreq_out.ifr_mtu + (oInteristun ? 14 : 0))) ? ghxsiz : (ifreq_out.ifr_mtu + (oInteristun ? 14 : 0))), 0, (struct sockaddr *)&sockAddr_out, sizeof(sockAddr_out))) {
+            if (-1 == sendto(ipSock_out.fdSock, ghxbuf + (oInteristun ? 0 : 14), (((ghxsiz & 0xFFFF) < (ifreq_out.ifr_mtu + (oInteristun ? 0 : 14))) ? ghxsiz : (ifreq_out.ifr_mtu + (oInteristun ? 0 : 14))), 0, (struct sockaddr *)&sockAddr_out, sizeof(sockAddr_out))) {
                 perror("Sending failure");
             } else { transmac_ip_success = true; }
             memset(ghxbuf,0,sizeof(ghxbuf));
@@ -1018,7 +1018,7 @@ pMAC3_maniplation:
         sockAddr_out_arp.sll_ifindex = ifindex4out;
         sockAddrghx.sll_ifindex = ifindex4in;
         sockAddr_out.sll_ifindex = ifindex4out;
-        if (-1 == (ghzsiz = recvfrom(ipSock_out.fdSock, ghzbuf + (oInteristun ? 14 : 0), sizeof(ghzbuf), 0, (struct sockaddr *)&sockAddr_out, (socklen_t*)&sockAddr_outsiz))) {
+        if (-1 == (ghzsiz = recvfrom(ipSock_out.fdSock, ghzbuf + (oInteristun ? 0 : 14), sizeof(ghzbuf), 0, (struct sockaddr *)&sockAddr_out, (socklen_t*)&sockAddr_outsiz))) {
             perror("Receiveing failure(oInterface)");
         }
         if (oInteristun == true){
@@ -1060,7 +1060,7 @@ pMAC3_maniplation:
                 sockAddr_out_arp.sll_ifindex = ifindex4out;
                 sockAddrghx.sll_ifindex = ifindex4in;
                 sockAddr_out.sll_ifindex = ifindex4out;
-                if (-1 == sendto(ipSock_out.fdSock, ghzbuf + (oInteristun ? 14 : 0), (((ghzsiz & 0xFFFF) < 1514) ? ghxsiz : 1514), 0, (struct sockaddr *)&sockAddr_out, sizeof(sockAddr_out))) {
+                if (-1 == sendto(ipSock_out.fdSock, ghzbuf + (oInteristun ? 0 : 14), (((ghzsiz & 0xFFFF) < 1514) ? ghxsiz : 1514), 0, (struct sockaddr *)&sockAddr_out, sizeof(sockAddr_out))) {
                     perror("Sending failure");
                 } else { transmac_ip_success = true; }
                 memset(ghxbuf,0,sizeof(ghxbuf));
@@ -1098,7 +1098,7 @@ pMAC3_maniplation:
             sockAddr_out_arp.sll_ifindex = ifindex4out;
             sockAddrghx.sll_ifindex = ifindex4in;
             sockAddr_out.sll_ifindex = ifindex4out;
-            if (-1 == sendto(ipSock.fdSock, ghzbuf + (iInteristun ? 14 : 0), (((ghzsiz & 0xFFFF) < (ifreq.ifr_mtu + (iInteristun ? 14 : 0))) ? ghzsiz : (ifreq.ifr_mtu + (iInteristun ? 14 : 0))), 0, (struct sockaddr *)&sockAddr, sizeof(sockAddr))) {
+            if (-1 == sendto(ipSock.fdSock, ghzbuf + (iInteristun ? 0 : 14), (((ghzsiz & 0xFFFF) < (ifreq.ifr_mtu + (iInteristun ? 0 : 14))) ? ghzsiz : (ifreq.ifr_mtu + (iInteristun ? 0 : 14))), 0, (struct sockaddr *)&sockAddr, sizeof(sockAddr))) {
                 perror("Sending failure");
             } else { transmac_ip_success = true; }
             memset(ghzbuf,0,sizeof(ghzbuf));
