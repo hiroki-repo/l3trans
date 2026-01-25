@@ -709,6 +709,15 @@ int main(int argc, char* argv[]) {
         perror("SIOCGIFINDEX");
         exit(1);
     }
+
+    if (-1 == ioctl(ipSock.fdSock, SIOCGIFMTU, &ifreq)) {
+        perror("SIOCGIFMTU");
+        exit(1);
+    }
+    if (-1 == ioctl(ipSock_out.fdSock, SIOCGIFMTU, &ifreq_out)) {
+        perror("SIOCGIFMTU");
+        exit(1);
+    }
     if (!(ifreq.ifr_flags & IFF_BROADCAST) && (ifreq.ifr_flags & IFF_POINTOPOINT) && (ifreq.ifr_flags & IFF_NOARP)){
         iInteristun = true;
     } else if (!(ioctl(ipSock.fdSock, TUNGETIFF, &ifr_typeoftun_0) < 0)){
@@ -976,7 +985,7 @@ gettingpacket:
             sockAddr_out_arp.sll_ifindex = ifindex4out;
             sockAddrghx.sll_ifindex = ifindex4in;
             sockAddr_out.sll_ifindex = ifindex4out;
-            if (-1 == sendto(ipSock_out.fdSock, ghxbuf + (oInteristun ? 14 : 0), (((ghxsiz & 0xFFFF) < 1514) ? ghxsiz : 1514), 0, (struct sockaddr *)&sockAddr_out, sizeof(sockAddr_out))) {
+            if (-1 == sendto(ipSock_out.fdSock, ghxbuf + (oInteristun ? 14 : 0), (((ghxsiz & 0xFFFF) < (ifreq_out.ifr_mtu + (oInteristun ? 14 : 0))) ? ghxsiz : (ifreq_out.ifr_mtu + (oInteristun ? 14 : 0))), 0, (struct sockaddr *)&sockAddr_out, sizeof(sockAddr_out))) {
                 perror("Sending failure");
             } else { transmac_ip_success = true; }
             memset(ghxbuf,0,sizeof(ghxbuf));
@@ -1089,7 +1098,7 @@ pMAC3_maniplation:
             sockAddr_out_arp.sll_ifindex = ifindex4out;
             sockAddrghx.sll_ifindex = ifindex4in;
             sockAddr_out.sll_ifindex = ifindex4out;
-            if (-1 == sendto(ipSock.fdSock, ghzbuf + (iInteristun ? 14 : 0), (((ghzsiz & 0xFFFF) < 1514) ? ghzsiz : 1514), 0, (struct sockaddr *)&sockAddr, sizeof(sockAddr))) {
+            if (-1 == sendto(ipSock.fdSock, ghzbuf + (iInteristun ? 14 : 0), (((ghzsiz & 0xFFFF) < (ifreq.ifr_mtu + (iInteristun ? 14 : 0))) ? ghzsiz : (ifreq.ifr_mtu + (iInteristun ? 14 : 0))), 0, (struct sockaddr *)&sockAddr, sizeof(sockAddr))) {
                 perror("Sending failure");
             } else { transmac_ip_success = true; }
             memset(ghzbuf,0,sizeof(ghzbuf));
