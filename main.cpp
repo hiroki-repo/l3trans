@@ -922,6 +922,7 @@ gettingpacket:
         sockAddr_out_arp.sll_ifindex = ifindex4out;
         sockAddrghx.sll_ifindex = ifindex4in;
         sockAddr_out.sll_ifindex = ifindex4out;
+        sockAddrghxsiz = 1514;
         if (-1 == (ghxsiz = recvfrom(ipSock.fdSock, ghxbuf + (iInteristun ? 14 : 0), sizeof(ghxbuf), 0, (struct sockaddr *)&sockAddrghx, (socklen_t*)&sockAddrghxsiz))) {
             perror("Receiveing failure(iInterface)");
         }
@@ -1010,6 +1011,7 @@ pMAC3_maniplation:
         sockAddr_out_arp.sll_ifindex = ifindex4out;
         sockAddrghx.sll_ifindex = ifindex4in;
         sockAddr_out.sll_ifindex = ifindex4out;
+        sockAddr_outsiz = 1514;
         if (-1 == (ghzsiz = recvfrom(ipSock_out.fdSock, ghzbuf + (oInteristun ? 14 : 0), sizeof(ghzbuf), 0, (struct sockaddr *)&sockAddr_out, (socklen_t*)&sockAddr_outsiz))) {
             perror("Receiveing failure(oInterface)");
         }
