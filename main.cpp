@@ -678,6 +678,7 @@ int main(int argc, char* argv[]) {
     strcpy(ifreq_out.ifr_name, oInterfaceName);
     strcpy(ifr_typeoftun_0.ifr_name, iInterfaceName);
     strcpy(ifr_typeoftun_1.ifr_name, oInterfaceName);
+    bool isrenewedsocket = false;
     ipSock = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
     if (ipSock == -1) {
         perror("socket():");
@@ -688,6 +689,7 @@ int main(int argc, char* argv[]) {
         perror("socket():");
         exit(1);
     }
+aftersocketcreated:
 
     struct sockaddr_ll sockAddr;
     sockAddr.sll_family = AF_PACKET;
@@ -713,12 +715,7 @@ int main(int argc, char* argv[]) {
         perror("SIOCGIFINDEX");
         exit(1);
     }
-    if (!(ifreq.ifr_flags & IFF_BROADCAST) && (ifreq.ifr_flags & IFF_POINTOPOINT) && (ifreq.ifr_flags & IFF_NOARP)){
-        iInteristun = true;
-    }
-    if (!(ifreq_out.ifr_flags & IFF_BROADCAST) && (ifreq_out.ifr_flags & IFF_POINTOPOINT) && (ifreq_out.ifr_flags & IFF_NOARP)){
-        oInteristun = true;
-    }
+
     ifindex4in = ifreq.ifr_ifindex;
     ifindex4out = ifreq_out.ifr_ifindex;
     sockAddr.sll_ifindex = ifreq.ifr_ifindex;
@@ -819,6 +816,59 @@ int main(int argc, char* argv[]) {
     /*unsigned char ghxbuf[65536]{'\0'};
     unsigned char ghybuf[sizeof(MACHeader)]{'\0'};
     unsigned char ghzbuf[65536]{'\0'};*/
+
+    if (-1 == ioctl(ipSock.fdSock, SIOCGIFFLAGS, &ifreq)) {
+        perror("SIOCGIFINDEX");
+        exit(1);
+    }
+    if (-1 == ioctl(ipSock_out.fdSock, SIOCGIFFLAGS, &ifreq_out)) {
+        perror("SIOCGIFINDEX");
+        exit(1);
+    }
+    if (!(ifreq.ifr_flags & IFF_BROADCAST) && (ifreq.ifr_flags & IFF_POINTOPOINT) && (ifreq.ifr_flags & IFF_NOARP)){
+        iInteristun = true;
+        sockAddr.sll_hatype = htons(ifreq.ifr_hwaddr.sa_family);
+        sockAddr.sll_pkttype = PACKET_HOST;
+        sockAddr.sll_family = AF_INET;
+        if (isrenewedsocket==false){
+            isrenewedsocket = true;
+            //close(ipSock.fdSock);
+            ipSock = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
+            if (ipSock == -1) {
+                perror("socket():");
+                exit(1);
+            }
+            memset(&ifreq,0,sizeof(ifreq));
+            memset(&ifr_typeoftun_0,0,sizeof(ifr_typeoftun_0));
+            strcpy(ifreq.ifr_name, iInterfaceName);
+            strcpy(ifr_typeoftun_0.ifr_name, iInterfaceName);
+            goto aftersocketcreated;
+        }else{
+            isrenewedsocket = false;
+        }
+    }
+    if (!(ifreq_out.ifr_flags & IFF_BROADCAST) && (ifreq_out.ifr_flags & IFF_POINTOPOINT) && (ifreq_out.ifr_flags & IFF_NOARP)){
+        oInteristun = true;
+        sockAddr_out.sll_hatype = htons(ifreq_out.ifr_hwaddr.sa_family);
+        sockAddr_out.sll_pkttype = PACKET_HOST;
+        sockAddr_out.sll_family = AF_INET;
+        if (isrenewedsocket==false){
+            isrenewedsocket = true;
+            //close(ipSock_out.fdSock);
+            ipSock_out = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
+            if (ipSock_out == -1) {
+                perror("socket():");
+                exit(1);
+            }
+            memset(&ifreq_out,0,sizeof(ifreq_out));
+            memset(&ifr_typeoftun_1,0,sizeof(ifr_typeoftun_1));
+            strcpy(ifreq_out.ifr_name, oInterfaceName);
+            strcpy(ifr_typeoftun_1.ifr_name, oInterfaceName);
+            goto aftersocketcreated;
+        }else{
+            isrenewedsocket = false;
+        }
+    }
 
     {
         //construct arp response
