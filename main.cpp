@@ -454,7 +454,7 @@ void incipchecksum(IP4Header* pip4Header){
 void ip4portswap(IP4Header* pip4Header){
     unsigned short porttmp = 0;
     if (pip4Header->Proto == 6 || pip4Header->Proto == 17){
-        porttmp = ((*(unsigned short*)(((void*)(((void*)pip4Header) + ((pip4Header->VerAndHeaderLength & 0xF) * 4) + 0)))));
+        porttmp = ((*(unsigned short*)(((void*)(((void*)pip4Header) + ((pip4Header->VerAndHeaderLength & 0xF) * 4) + 2)))));
         ((*(unsigned short*)(((void*)(((void*)pip4Header) + ((pip4Header->VerAndHeaderLength & 0xF) * 4) + 2))))) = ((*(unsigned short*)(((void*)(((void*)pip4Header) + ((pip4Header->VerAndHeaderLength & 0xF) * 4) + 0)))));
         ((*(unsigned short*)(((void*)(((void*)pip4Header) + ((pip4Header->VerAndHeaderLength & 0xF) * 4) + 0))))) = porttmp;
     }
