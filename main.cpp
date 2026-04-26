@@ -372,6 +372,95 @@ struct PseudoIP4HeaderandIPX{
     unsigned char Payload[65536-12]{0};
 };
 
+void decipchecksum(IP4Header* pip4Header){
+    unsigned int checksum = (~(htons(pip4Header->CheckSum))) & 0xFFFF;
+    checksum -= htons((*(short*)((&pip4Header->VerAndHeaderLength) + (4 * 2))));
+    if (((checksum >> 16) & 1)){checksum = ((checksum & 0xFFFF) - ((checksum >> 16) & 1)) & 0xFFFF;}
+    for (int cnt=6;cnt<10;cnt++){
+        checksum -= htons((*(short*)((&pip4Header->VerAndHeaderLength) + (cnt * 2))));
+        if (((checksum >> 16) & 1)){checksum = ((checksum & 0xFFFF) - ((checksum >> 16) & 1)) & 0xFFFF;}
+    }
+    checksum = (~(htons((checksum & 0xFFFF) - ((checksum >> 16) & 1)))) & 0xFFFF;
+    pip4Header->CheckSum = checksum;
+    if (pip4Header->Proto == 6){
+        checksum = (~(htons((*(unsigned short*)(((void*)(((void*)pip4Header) + ((pip4Header->VerAndHeaderLength & 0xF) * 4) + 16))))))) & 0xFFFF;
+        checksum -= (htons((*(unsigned short*)(((void*)(((void*)pip4Header) + ((pip4Header->VerAndHeaderLength & 0xF) * 4) + 0))))));
+        if (((checksum >> 16) & 1)){checksum = ((checksum & 0xFFFF) - ((checksum >> 16) & 1)) & 0xFFFF;}
+        checksum -= (htons((*(unsigned short*)(((void*)(((void*)pip4Header) + ((pip4Header->VerAndHeaderLength & 0xF) * 4) + 2))))));
+        if (((checksum >> 16) & 1)){checksum = ((checksum & 0xFFFF) - ((checksum >> 16) & 1)) & 0xFFFF;}
+        for (int cnt=6;cnt<10;cnt++){
+            checksum -= htons((*(short*)((&pip4Header->VerAndHeaderLength) + (cnt * 2))));
+            if (((checksum >> 16) & 1)){checksum = ((checksum & 0xFFFF) - ((checksum >> 16) & 1)) & 0xFFFF;}
+        }
+        checksum = (~(htons((checksum & 0xFFFF) - ((checksum >> 16) & 1)))) & 0xFFFF;
+        (*(unsigned char*)(((void*)(((void*)pip4Header) + ((pip4Header->VerAndHeaderLength & 0xF) * 4) + 16)))) = ((checksum >> (8 * 0)) & 0xFF);
+        (*(unsigned char*)(((void*)(((void*)pip4Header) + ((pip4Header->VerAndHeaderLength & 0xF) * 4) + 17)))) = ((checksum >> (8 * 1)) & 0xFF);
+    } else if (pip4Header->Proto == 17) {
+        checksum = (~(htons((*(unsigned short*)(((void*)(((void*)pip4Header) + ((pip4Header->VerAndHeaderLength & 0xF) * 4) + 6))))))) & 0xFFFF;
+        checksum -= (htons((*(unsigned short*)(((void*)(((void*)pip4Header) + ((pip4Header->VerAndHeaderLength & 0xF) * 4) + 0))))));
+        if (((checksum >> 16) & 1)){checksum = ((checksum & 0xFFFF) - ((checksum >> 16) & 1)) & 0xFFFF;}
+        checksum -= (htons((*(unsigned short*)(((void*)(((void*)pip4Header) + ((pip4Header->VerAndHeaderLength & 0xF) * 4) + 2))))));
+        if (((checksum >> 16) & 1)){checksum = ((checksum & 0xFFFF) - ((checksum >> 16) & 1)) & 0xFFFF;}
+        for (int cnt=6;cnt<10;cnt++){
+            checksum -= htons((*(short*)((&pip4Header->VerAndHeaderLength) + (cnt * 2))));
+            if (((checksum >> 16) & 1)){checksum = ((checksum & 0xFFFF) - ((checksum >> 16) & 1)) & 0xFFFF;}
+        }
+        checksum = (~(htons((checksum & 0xFFFF) - ((checksum >> 16) & 1)))) & 0xFFFF;
+        (*(unsigned char*)(((void*)(((void*)pip4Header) + ((pip4Header->VerAndHeaderLength & 0xF) * 4) + 6)))) = ((checksum >> (8 * 0)) & 0xFF);
+        (*(unsigned char*)(((void*)(((void*)pip4Header) + ((pip4Header->VerAndHeaderLength & 0xF) * 4) + 7)))) = ((checksum >> (8 * 1)) & 0xFF);
+    }
+    return;
+}
+void incipchecksum(IP4Header* pip4Header){
+    unsigned int checksum = (~(htons(pip4Header->CheckSum))) & 0xFFFF;
+    checksum += htons((*(short*)((&pip4Header->VerAndHeaderLength) + (4 * 2))));
+    if (((checksum >> 16) & 0xFFFF)){checksum = ((checksum & 0xFFFF) + ((checksum >> 16) & 0xFFFF)) & 0xFFFF;}
+    for (int cnt=6;cnt<10;cnt++){
+        checksum += htons((*(short*)((&pip4Header->VerAndHeaderLength) + (cnt * 2))));
+        if (((checksum >> 16) & 0xFFFF)){checksum = ((checksum & 0xFFFF) + ((checksum >> 16) & 0xFFFF)) & 0xFFFF;}
+    }
+    checksum = (~(htons((checksum & 0xFFFF) + ((checksum >> 16) & 0xFFFF)))) & 0xFFFF;
+    pip4Header->CheckSum = checksum;
+    if (pip4Header->Proto == 6){
+        checksum = (~(htons((*(unsigned short*)(((void*)(((void*)pip4Header) + ((pip4Header->VerAndHeaderLength & 0xF) * 4) + 16))))))) & 0xFFFF;
+        checksum += (htons((*(unsigned short*)(((void*)(((void*)pip4Header) + ((pip4Header->VerAndHeaderLength & 0xF) * 4) + 0))))));
+        if (((checksum >> 16) & 0xFFFF)){checksum = ((checksum & 0xFFFF) + ((checksum >> 16) & 0xFFFF)) & 0xFFFF;}
+        checksum += (htons((*(unsigned short*)(((void*)(((void*)pip4Header) + ((pip4Header->VerAndHeaderLength & 0xF) * 4) + 2))))));
+        if (((checksum >> 16) & 0xFFFF)){checksum = ((checksum & 0xFFFF) + ((checksum >> 16) & 0xFFFF)) & 0xFFFF;}
+        for (int cnt=6;cnt<10;cnt++){
+            checksum += htons((*(short*)((&pip4Header->VerAndHeaderLength) + (cnt * 2))));
+            if (((checksum >> 16) & 0xFFFF)){checksum = ((checksum & 0xFFFF) + ((checksum >> 16) & 0xFFFF)) & 0xFFFF;}
+        }
+        checksum = (~(htons((checksum & 0xFFFF) + ((checksum >> 16) & 0xFFFF)))) & 0xFFFF;
+        (*(unsigned char*)(((void*)(((void*)pip4Header) + ((pip4Header->VerAndHeaderLength & 0xF) * 4) + 16)))) = ((checksum >> (8 * 0)) & 0xFF);
+        (*(unsigned char*)(((void*)(((void*)pip4Header) + ((pip4Header->VerAndHeaderLength & 0xF) * 4) + 17)))) = ((checksum >> (8 * 1)) & 0xFF);
+    } else if (pip4Header->Proto == 17) {
+        checksum = (~(htons((*(unsigned short*)(((void*)(((void*)pip4Header) + ((pip4Header->VerAndHeaderLength & 0xF) * 4) + 6))))))) & 0xFFFF;
+        checksum += (htons((*(unsigned short*)(((void*)(((void*)pip4Header) + ((pip4Header->VerAndHeaderLength & 0xF) * 4) + 0))))));
+        if (((checksum >> 16) & 0xFFFF)){checksum = ((checksum & 0xFFFF) + ((checksum >> 16) & 0xFFFF)) & 0xFFFF;}
+        checksum += (htons((*(unsigned short*)(((void*)(((void*)pip4Header) + ((pip4Header->VerAndHeaderLength & 0xF) * 4) + 2))))));
+        if (((checksum >> 16) & 0xFFFF)){checksum = ((checksum & 0xFFFF) + ((checksum >> 16) & 0xFFFF)) & 0xFFFF;}
+        for (int cnt=6;cnt<10;cnt++){
+            checksum += htons((*(short*)((&pip4Header->VerAndHeaderLength) + (cnt * 2))));
+            if (((checksum >> 16) & 0xFFFF)){checksum = ((checksum & 0xFFFF) + ((checksum >> 16) & 0xFFFF)) & 0xFFFF;}
+        }
+        checksum = (~(htons((checksum & 0xFFFF) + ((checksum >> 16) & 0xFFFF)))) & 0xFFFF;
+        (*(unsigned char*)(((void*)(((void*)pip4Header) + ((pip4Header->VerAndHeaderLength & 0xF) * 4) + 6)))) = ((checksum >> (8 * 0)) & 0xFF);
+        (*(unsigned char*)(((void*)(((void*)pip4Header) + ((pip4Header->VerAndHeaderLength & 0xF) * 4) + 7)))) = ((checksum >> (8 * 1)) & 0xFF);
+    }
+    return;
+}
+
+void ip4portswap(IP4Header* pip4Header){
+    unsigned short porttmp = 0;
+    if (pip4Header->Proto == 6 || pip4Header->Proto == 17){
+        porttmp = ((*(unsigned short*)(((void*)(((void*)pip4Header) + ((pip4Header->VerAndHeaderLength & 0xF) * 4) + 0)))));
+        ((*(unsigned short*)(((void*)(((void*)pip4Header) + ((pip4Header->VerAndHeaderLength & 0xF) * 4) + 2))))) = ((*(unsigned short*)(((void*)(((void*)pip4Header) + ((pip4Header->VerAndHeaderLength & 0xF) * 4) + 0)))));
+        ((*(unsigned short*)(((void*)(((void*)pip4Header) + ((pip4Header->VerAndHeaderLength & 0xF) * 4) + 0))))) = porttmp;
+    }
+    return;
+}
+
 PseudoIP4HeaderandIPX pseudoIP4HeaderandIPX;
 
 void calculateipchksum(IP4Header* pip4Header){
@@ -386,7 +475,7 @@ void calculateipchksum(IP4Header* pip4Header){
     pip4Header->CheckSum = (~(htons((checksum & 0xFFFF) + ((checksum >> 16) & 0xFFFF)))) & 0xFFFF;
 
     if (pip4Header->Proto == 6 || pip4Header->Proto == 17){
-        memset(&pseudoIP4HeaderandIPX.pseudoIP4Header,0,sizeof(pseudoIP4HeaderandIPX));
+        //memset(&pseudoIP4HeaderandIPX.pseudoIP4Header,0,sizeof(pseudoIP4HeaderandIPX));
         memcpy(pseudoIP4HeaderandIPX.pseudoIP4Header.SRCIP,pip4Header->SRCIP,sizeof(pseudoIP4HeaderandIPX.pseudoIP4Header.SRCIP));
         memcpy(pseudoIP4HeaderandIPX.pseudoIP4Header.DSTIP,pip4Header->DSTIP,sizeof(pseudoIP4HeaderandIPX.pseudoIP4Header.DSTIP));
         pseudoIP4HeaderandIPX.pseudoIP4Header.Proto = pip4Header->Proto;
@@ -1050,29 +1139,37 @@ gettingpacket:
             }*/
             //pIP4MAC2.ip4Header.TTL--;
             if (((nsi_binary[0] == pIP4MAC2.ip4Header.DSTIP[0]) && (nsi_binary[1] == pIP4MAC2.ip4Header.DSTIP[1]) && (nsi_binary[2] == pIP4MAC2.ip4Header.DSTIP[2]) && (nsi_binary[3] == pIP4MAC2.ip4Header.DSTIP[3]))) {
+                decipchecksum((IP4Header*)&pIP4MAC2.ip4Header);
                 pIP4MAC2.ip4Header.DSTIP[0] = ndi_binary[0];
                 pIP4MAC2.ip4Header.DSTIP[1] = ndi_binary[1];
                 pIP4MAC2.ip4Header.DSTIP[2] = ndi_binary[2];
                 pIP4MAC2.ip4Header.DSTIP[3] = ndi_binary[3];
-                calculateipchksum((IP4Header*)&pIP4MAC2.ip4Header);
+                //calculateipchksum((IP4Header*)&pIP4MAC2.ip4Header);
+                incipchecksum((IP4Header*)&pIP4MAC2.ip4Header);
             } else if (((ndi_binary[0] == pIP4MAC2.ip4Header.SRCIP[0]) && (ndi_binary[1] == pIP4MAC2.ip4Header.SRCIP[1]) && (ndi_binary[2] == pIP4MAC2.ip4Header.SRCIP[2]) && (ndi_binary[3] == pIP4MAC2.ip4Header.SRCIP[3]))) {
+                decipchecksum((IP4Header*)&pIP4MAC2.ip4Header);
                 pIP4MAC2.ip4Header.SRCIP[0] = nsi_binary[0];
                 pIP4MAC2.ip4Header.SRCIP[1] = nsi_binary[1];
                 pIP4MAC2.ip4Header.SRCIP[2] = nsi_binary[2];
                 pIP4MAC2.ip4Header.SRCIP[3] = nsi_binary[3];
-                calculateipchksum((IP4Header*)&pIP4MAC2.ip4Header);
+                //calculateipchksum((IP4Header*)&pIP4MAC2.ip4Header);
+                incipchecksum((IP4Header*)&pIP4MAC2.ip4Header);
             } else if (((ndi_binary[0] == pIP4MAC2.ip4Header.DSTIP[0]) && (ndi_binary[1] == pIP4MAC2.ip4Header.DSTIP[1]) && (ndi_binary[2] == pIP4MAC2.ip4Header.DSTIP[2]) && (ndi_binary[3] == pIP4MAC2.ip4Header.DSTIP[3]))) {
+                decipchecksum((IP4Header*)&pIP4MAC2.ip4Header);
                 pIP4MAC2.ip4Header.DSTIP[0] = nsi_binary[0];
                 pIP4MAC2.ip4Header.DSTIP[1] = nsi_binary[1];
                 pIP4MAC2.ip4Header.DSTIP[2] = nsi_binary[2];
                 pIP4MAC2.ip4Header.DSTIP[3] = nsi_binary[3];
-                calculateipchksum((IP4Header*)&pIP4MAC2.ip4Header);
+                //calculateipchksum((IP4Header*)&pIP4MAC2.ip4Header);
+                incipchecksum((IP4Header*)&pIP4MAC2.ip4Header);
             } else if (((nsi_binary[0] == pIP4MAC2.ip4Header.SRCIP[0]) && (nsi_binary[1] == pIP4MAC2.ip4Header.SRCIP[1]) && (nsi_binary[2] == pIP4MAC2.ip4Header.SRCIP[2]) && (nsi_binary[3] == pIP4MAC2.ip4Header.SRCIP[3]))) {
+                decipchecksum((IP4Header*)&pIP4MAC2.ip4Header);
                 pIP4MAC2.ip4Header.SRCIP[0] = ndi_binary[0];
                 pIP4MAC2.ip4Header.SRCIP[1] = ndi_binary[1];
                 pIP4MAC2.ip4Header.SRCIP[2] = ndi_binary[2];
                 pIP4MAC2.ip4Header.SRCIP[3] = ndi_binary[3];
-                calculateipchksum((IP4Header*)&pIP4MAC2.ip4Header);
+                //calculateipchksum((IP4Header*)&pIP4MAC2.ip4Header);
+                incipchecksum((IP4Header*)&pIP4MAC2.ip4Header);
             }
             sockAddr.sll_ifindex = ifindex4in;
             sockAddr_out_arp.sll_ifindex = ifindex4out;
@@ -1192,6 +1289,7 @@ pMAC3_maniplation:
                 }*/
                 memcpy(pIP4MAC3.srcMACAddr, mtm, sizeof(pMAC.srcMACAddr));
                 memcpy(pIP4MAC3.destMACAddr, msm, sizeof(pMAC.srcMACAddr));
+                decipchecksum((IP4Header*)&pIP4MAC3.ip4Header);
                 pIP4MAC3.ip4Header.SRCIP[0] = nsi_binary[0];
                 pIP4MAC3.ip4Header.SRCIP[1] = nsi_binary[1];
                 pIP4MAC3.ip4Header.SRCIP[2] = nsi_binary[2];
@@ -1200,7 +1298,9 @@ pMAC3_maniplation:
                 pIP4MAC3.ip4Header.DSTIP[1] = ndi_binary[1];
                 pIP4MAC3.ip4Header.DSTIP[2] = ndi_binary[2];
                 pIP4MAC3.ip4Header.DSTIP[3] = ndi_binary[3];
-                calculateipchksum((IP4Header*)&pIP4MAC3.ip4Header);
+                ip4portswap((IP4Header*)&pIP4MAC3.ip4Header);
+                //calculateipchksum((IP4Header*)&pIP4MAC3.ip4Header);
+                incipchecksum((IP4Header*)&pIP4MAC3.ip4Header);
                 sockAddr.sll_ifindex = ifindex4in;
                 sockAddr_out_arp.sll_ifindex = ifindex4out;
                 sockAddrghx.sll_ifindex = ifindex4in;
@@ -1226,29 +1326,37 @@ pMAC3_maniplation:
                 sockAddrghx.sll_protocol = htons(ETH_P_ALL);
             } else {
                 if (((ndi_binary[0] == pIP4MAC3.ip4Header.SRCIP[0]) && (ndi_binary[1] == pIP4MAC3.ip4Header.SRCIP[1]) && (ndi_binary[2] == pIP4MAC3.ip4Header.SRCIP[2]) && (ndi_binary[3] == pIP4MAC3.ip4Header.SRCIP[3]))) {
+                    decipchecksum((IP4Header*)&pIP4MAC3.ip4Header);
                     pIP4MAC3.ip4Header.SRCIP[0] = nsi_binary[0];
                     pIP4MAC3.ip4Header.SRCIP[1] = nsi_binary[1];
                     pIP4MAC3.ip4Header.SRCIP[2] = nsi_binary[2];
                     pIP4MAC3.ip4Header.SRCIP[3] = nsi_binary[3];
-                    calculateipchksum((IP4Header*)&pIP4MAC3.ip4Header);
+                    //calculateipchksum((IP4Header*)&pIP4MAC3.ip4Header);
+                    incipchecksum((IP4Header*)&pIP4MAC3.ip4Header);
                 } else if (((nsi_binary[0] == pIP4MAC3.ip4Header.DSTIP[0]) && (nsi_binary[1] == pIP4MAC3.ip4Header.DSTIP[1]) && (nsi_binary[2] == pIP4MAC3.ip4Header.DSTIP[2]) && (nsi_binary[3] == pIP4MAC3.ip4Header.DSTIP[3]))) {
+                    decipchecksum((IP4Header*)&pIP4MAC3.ip4Header);
                     pIP4MAC3.ip4Header.DSTIP[0] = ndi_binary[0];
                     pIP4MAC3.ip4Header.DSTIP[1] = ndi_binary[1];
                     pIP4MAC3.ip4Header.DSTIP[2] = ndi_binary[2];
                     pIP4MAC3.ip4Header.DSTIP[3] = ndi_binary[3];
-                    calculateipchksum((IP4Header*)&pIP4MAC3.ip4Header);
+                    //calculateipchksum((IP4Header*)&pIP4MAC3.ip4Header);
+                    incipchecksum((IP4Header*)&pIP4MAC3.ip4Header);
                 } else if (((nsi_binary[0] == pIP4MAC3.ip4Header.SRCIP[0]) && (nsi_binary[1] == pIP4MAC3.ip4Header.SRCIP[1]) && (nsi_binary[2] == pIP4MAC3.ip4Header.SRCIP[2]) && (nsi_binary[3] == pIP4MAC3.ip4Header.SRCIP[3]))) {
+                    decipchecksum((IP4Header*)&pIP4MAC3.ip4Header);
                     pIP4MAC3.ip4Header.SRCIP[0] = ndi_binary[0];
                     pIP4MAC3.ip4Header.SRCIP[1] = ndi_binary[1];
                     pIP4MAC3.ip4Header.SRCIP[2] = ndi_binary[2];
                     pIP4MAC3.ip4Header.SRCIP[3] = ndi_binary[3];
-                    calculateipchksum((IP4Header*)&pIP4MAC3.ip4Header);
+                    //calculateipchksum((IP4Header*)&pIP4MAC3.ip4Header);
+                    incipchecksum((IP4Header*)&pIP4MAC3.ip4Header);
                 } else if (((ndi_binary[0] == pIP4MAC3.ip4Header.DSTIP[0]) && (ndi_binary[1] == pIP4MAC3.ip4Header.DSTIP[1]) && (ndi_binary[2] == pIP4MAC3.ip4Header.DSTIP[2]) && (ndi_binary[3] == pIP4MAC3.ip4Header.DSTIP[3]))) {
+                    decipchecksum((IP4Header*)&pIP4MAC3.ip4Header);
                     pIP4MAC3.ip4Header.DSTIP[0] = nsi_binary[0];
                     pIP4MAC3.ip4Header.DSTIP[1] = nsi_binary[1];
                     pIP4MAC3.ip4Header.DSTIP[2] = nsi_binary[2];
                     pIP4MAC3.ip4Header.DSTIP[3] = nsi_binary[3];
-                    calculateipchksum((IP4Header*)&pIP4MAC3.ip4Header);
+                    //calculateipchksum((IP4Header*)&pIP4MAC3.ip4Header);
+                    incipchecksum((IP4Header*)&pIP4MAC3.ip4Header);
                 }
                 sockAddr.sll_ifindex = ifindex4in;
                 sockAddr_out_arp.sll_ifindex = ifindex4out;
