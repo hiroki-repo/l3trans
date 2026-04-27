@@ -555,6 +555,8 @@ int main(int argc, char* argv[]) {
     bool sendonly = false;
     bool recvonly = false;
 
+    bool isl3promisc = false;
+
     for (int i = 1; i < argc; i++) {
         if (!memcmp("-rti", argv[i], 4) && i + 1 < argc && memcmp("-", argv[i+1], 1)) {
             if (strlen(argv[i + 1]) > 15) {
@@ -678,6 +680,8 @@ int main(int argc, char* argv[]) {
             sendonly = true;
         } else if (!memcmp("-recvonly", argv[i], 9)){
             recvonly = true;
+        } else if (!memcmp("-promisc", argv[i], 9)){
+            isl3promisc = true;
         } else {
             usage();
             exit(1);
@@ -1124,7 +1128,7 @@ gettingpacket:
         sockAddrghx.sll_ifindex = ifindex4in;
         sockAddr_out.sll_ifindex = ifindex4out;
         if (((sockAddrghx.sll_protocol == htons(ETH_P_ARP)) || (sockAddrghx.sll_protocol == htons(ETH_P_IP)))){
-        if ((((pIP4MAC2.ip4Header.DSTIP[0] & mysubnetmask[0]) == (pMAC.arpHeader.SenderIP[0] & mysubnetmask[0])) && ((pIP4MAC2.ip4Header.DSTIP[1] & mysubnetmask[1]) == (pMAC.arpHeader.SenderIP[1] & mysubnetmask[1])) && ((pIP4MAC2.ip4Header.DSTIP[2] & mysubnetmask[2]) == (pMAC.arpHeader.SenderIP[2] & mysubnetmask[2])) && ((pIP4MAC2.ip4Header.DSTIP[3] & mysubnetmask[3]) == (pMAC.arpHeader.SenderIP[3] & mysubnetmask[3]))) && ((((pMAC2.destMACAddr[0] == pMAC.srcMACAddr[0]) && (pMAC2.destMACAddr[1] == pMAC.srcMACAddr[1]) && (pMAC2.destMACAddr[2] == pMAC.srcMACAddr[2]) && (pMAC2.destMACAddr[3] == pMAC.srcMACAddr[3]) && (pMAC2.destMACAddr[4] == pMAC.srcMACAddr[4]) && (pMAC2.destMACAddr[5] == pMAC.srcMACAddr[5]))) && (sockAddrghx.sll_protocol == htons(ETH_P_IP)) && (nomeflag == false || ((*(unsigned int*)&myinterfaceip) != (*(unsigned int*)&pIP4MAC2.ip4Header.SRCIP))))){
+        if (((((pIP4MAC2.ip4Header.DSTIP[0] & mysubnetmask[0]) == (pMAC.arpHeader.SenderIP[0] & mysubnetmask[0])) && ((pIP4MAC2.ip4Header.DSTIP[1] & mysubnetmask[1]) == (pMAC.arpHeader.SenderIP[1] & mysubnetmask[1])) && ((pIP4MAC2.ip4Header.DSTIP[2] & mysubnetmask[2]) == (pMAC.arpHeader.SenderIP[2] & mysubnetmask[2])) && ((pIP4MAC2.ip4Header.DSTIP[3] & mysubnetmask[3]) == (pMAC.arpHeader.SenderIP[3] & mysubnetmask[3]))) || (isl3promisc == true)) && ((((pMAC2.destMACAddr[0] == pMAC.srcMACAddr[0]) && (pMAC2.destMACAddr[1] == pMAC.srcMACAddr[1]) && (pMAC2.destMACAddr[2] == pMAC.srcMACAddr[2]) && (pMAC2.destMACAddr[3] == pMAC.srcMACAddr[3]) && (pMAC2.destMACAddr[4] == pMAC.srcMACAddr[4]) && (pMAC2.destMACAddr[5] == pMAC.srcMACAddr[5]))) && (sockAddrghx.sll_protocol == htons(ETH_P_IP)) && (nomeflag == false || ((*(unsigned int*)&myinterfaceip) != (*(unsigned int*)&pIP4MAC2.ip4Header.SRCIP))))){
         //if ((((pIP4MAC2.ip4Header.DSTIP[0] == ndi_binary[0] && pIP4MAC2.ip4Header.DSTIP[1] == ndi_binary[1] && pIP4MAC2.ip4Header.DSTIP[2] == ndi_binary[2] && pIP4MAC2.ip4Header.DSTIP[3] == ndi_binary[3]) && !(ndi_binary[0]==0 && ndi_binary[1]==0 && ndi_binary[2]==0 && ndi_binary[3]==0)) || ((((pIP4MAC2.ip4Header.DSTIP[0] & mysubnetmask[0]) == (pMAC.arpHeader.SenderIP[0] & mysubnetmask[0])) && ((pIP4MAC2.ip4Header.DSTIP[1] & mysubnetmask[1]) == (pMAC.arpHeader.SenderIP[1] & mysubnetmask[1])) && ((pIP4MAC2.ip4Header.DSTIP[2] & mysubnetmask[2]) == (pMAC.arpHeader.SenderIP[2] & mysubnetmask[2])) && ((pIP4MAC2.ip4Header.DSTIP[3] & mysubnetmask[3]) == (pMAC.arpHeader.SenderIP[3] & mysubnetmask[3]))) && (ndi_binary[0]==0 && ndi_binary[1]==0 && ndi_binary[2]==0 && ndi_binary[3]==0))) && ((((pMAC2.destMACAddr[0] == pMAC.srcMACAddr[0]) && (pMAC2.destMACAddr[1] == pMAC.srcMACAddr[1]) && (pMAC2.destMACAddr[2] == pMAC.srcMACAddr[2]) && (pMAC2.destMACAddr[3] == pMAC.srcMACAddr[3]) && (pMAC2.destMACAddr[4] == pMAC.srcMACAddr[4]) && (pMAC2.destMACAddr[5] == pMAC.srcMACAddr[5]))) && (sockAddrghx.sll_protocol == htons(ETH_P_IP)) && (nomeflag == false || ((*(unsigned int*)&myinterfaceip) != (*(unsigned int*)&pIP4MAC2.ip4Header.SRCIP))))){
         //if ((!((pIP4MAC2.ip4Header.DSTIP[0]==0 && pIP4MAC2.ip4Header.DSTIP[1]==0 && pIP4MAC2.ip4Header.DSTIP[2]==0 && pIP4MAC2.ip4Header.DSTIP[3]==0) || (pIP4MAC2.ip4Header.DSTIP[0]==255 && pIP4MAC2.ip4Header.DSTIP[1]==255 && pIP4MAC2.ip4Header.DSTIP[2]==255 && pIP4MAC2.ip4Header.DSTIP[3]==255))) && ((((pMAC2.destMACAddr[0] == pMAC.srcMACAddr[0]) && (pMAC2.destMACAddr[1] == pMAC.srcMACAddr[1]) && (pMAC2.destMACAddr[2] == pMAC.srcMACAddr[2]) && (pMAC2.destMACAddr[3] == pMAC.srcMACAddr[3]) && (pMAC2.destMACAddr[4] == pMAC.srcMACAddr[4]) && (pMAC2.destMACAddr[5] == pMAC.srcMACAddr[5]))) && (sockAddrghx.sll_protocol == htons(ETH_P_IP)) && (nomeflag == false || ((*(unsigned int*)&myinterfaceip) != (*(unsigned int*)&pIP4MAC2.ip4Header.SRCIP))))){
             if (recvonly){ goto pMAC3_maniplation; }
@@ -1267,7 +1271,7 @@ pMAC3_maniplation:
         sockAddrghx.sll_ifindex = ifindex4in;
         sockAddr_out.sll_ifindex = ifindex4out;
         if (((sockAddr_out.sll_protocol == htons(ETH_P_ARP)) || (sockAddr_out.sll_protocol == htons(ETH_P_IP)))){
-        if ((((pIP4MAC3.ip4Header.SRCIP[0] == ndi_binary[0] && pIP4MAC3.ip4Header.SRCIP[1] == ndi_binary[1] && pIP4MAC3.ip4Header.SRCIP[2] == ndi_binary[2] && pIP4MAC3.ip4Header.SRCIP[3] == ndi_binary[3]) && nataddr4host == true) || ((((pIP4MAC3.ip4Header.SRCIP[0] & mysubnetmask[0]) == (pMAC.arpHeader.SenderIP[0] & mysubnetmask[0])) && ((pIP4MAC3.ip4Header.SRCIP[1] & mysubnetmask[1]) == (pMAC.arpHeader.SenderIP[1] & mysubnetmask[1])) && ((pIP4MAC3.ip4Header.SRCIP[2] & mysubnetmask[2]) == (pMAC.arpHeader.SenderIP[2] & mysubnetmask[2])) && ((pIP4MAC3.ip4Header.SRCIP[3] & mysubnetmask[3]) == (pMAC.arpHeader.SenderIP[3] & mysubnetmask[3]))) && nataddr4host == false)) && ((((pMAC3.destMACAddr[0] == mtm[0]) && (pMAC3.destMACAddr[1] == mtm[1]) && (pMAC3.destMACAddr[2] == mtm[2]) && (pMAC3.destMACAddr[3] == mtm[3]) && (pMAC3.destMACAddr[4] == mtm[4]) && (pMAC3.destMACAddr[5] == mtm[5]))) && (sockAddr_out.sll_protocol == htons(ETH_P_IP)) && (nomeflag == false || ((*(unsigned int*)&mti_binary) != (*(unsigned int*)&pIP4MAC3.ip4Header.DSTIP))))){
+        if ((((pIP4MAC3.ip4Header.SRCIP[0] == ndi_binary[0] && pIP4MAC3.ip4Header.SRCIP[1] == ndi_binary[1] && pIP4MAC3.ip4Header.SRCIP[2] == ndi_binary[2] && pIP4MAC3.ip4Header.SRCIP[3] == ndi_binary[3]) && nataddr4host == true) || ((((pIP4MAC3.ip4Header.SRCIP[0] & mysubnetmask[0]) == (pMAC.arpHeader.SenderIP[0] & mysubnetmask[0])) && ((pIP4MAC3.ip4Header.SRCIP[1] & mysubnetmask[1]) == (pMAC.arpHeader.SenderIP[1] & mysubnetmask[1])) && ((pIP4MAC3.ip4Header.SRCIP[2] & mysubnetmask[2]) == (pMAC.arpHeader.SenderIP[2] & mysubnetmask[2])) && ((pIP4MAC3.ip4Header.SRCIP[3] & mysubnetmask[3]) == (pMAC.arpHeader.SenderIP[3] & mysubnetmask[3]))) && nataddr4host == false) || (isl3promisc == true)) && ((((pMAC3.destMACAddr[0] == mtm[0]) && (pMAC3.destMACAddr[1] == mtm[1]) && (pMAC3.destMACAddr[2] == mtm[2]) && (pMAC3.destMACAddr[3] == mtm[3]) && (pMAC3.destMACAddr[4] == mtm[4]) && (pMAC3.destMACAddr[5] == mtm[5]))) && (sockAddr_out.sll_protocol == htons(ETH_P_IP)) && (nomeflag == false || ((*(unsigned int*)&mti_binary) != (*(unsigned int*)&pIP4MAC3.ip4Header.DSTIP))))){
         //if ((((pIP4MAC3.ip4Header.SRCIP[0] & mysubnetmask[0]) == (pMAC.arpHeader.SenderIP[0] & mysubnetmask[0])) && ((pIP4MAC3.ip4Header.SRCIP[1] & mysubnetmask[1]) == (pMAC.arpHeader.SenderIP[1] & mysubnetmask[1])) && ((pIP4MAC3.ip4Header.SRCIP[2] & mysubnetmask[2]) == (pMAC.arpHeader.SenderIP[2] & mysubnetmask[2])) && ((pIP4MAC3.ip4Header.SRCIP[3] & mysubnetmask[3]) == (pMAC.arpHeader.SenderIP[3] & mysubnetmask[3]))) && ((((pMAC3.destMACAddr[0] == mtm[0]) && (pMAC3.destMACAddr[1] == mtm[1]) && (pMAC3.destMACAddr[2] == mtm[2]) && (pMAC3.destMACAddr[3] == mtm[3]) && (pMAC3.destMACAddr[4] == mtm[4]) && (pMAC3.destMACAddr[5] == mtm[5]))) && (sockAddr_out.sll_protocol == htons(ETH_P_IP)) && (nomeflag == false || ((*(unsigned int*)&mti_binary) != (*(unsigned int*)&pIP4MAC3.ip4Header.DSTIP))))){
         //if ((((pIP4MAC3.ip4Header.SRCIP[0] == nsi_binary[0] && pIP4MAC3.ip4Header.SRCIP[1] == nsi_binary[1] && pIP4MAC3.ip4Header.SRCIP[2] == nsi_binary[2] && pIP4MAC3.ip4Header.SRCIP[3] == nsi_binary[3]) && !(nsi_binary[0]==0 && nsi_binary[1]==0 && nsi_binary[2]==0 && nsi_binary[3]==0)) || ((((pIP4MAC3.ip4Header.SRCIP[0] & mysubnetmask[0]) == (pMAC.arpHeader.SenderIP[0] & mysubnetmask[0])) && ((pIP4MAC3.ip4Header.SRCIP[1] & mysubnetmask[1]) == (pMAC.arpHeader.SenderIP[1] & mysubnetmask[1])) && ((pIP4MAC3.ip4Header.SRCIP[2] & mysubnetmask[2]) == (pMAC.arpHeader.SenderIP[2] & mysubnetmask[2])) && ((pIP4MAC3.ip4Header.SRCIP[3] & mysubnetmask[3]) == (pMAC.arpHeader.SenderIP[3] & mysubnetmask[3]))) && (nsi_binary[0]==0 && nsi_binary[1]==0 && nsi_binary[2]==0 && nsi_binary[3]==0))) && ((((pMAC3.destMACAddr[0] == mtm[0]) && (pMAC3.destMACAddr[1] == mtm[1]) && (pMAC3.destMACAddr[2] == mtm[2]) && (pMAC3.destMACAddr[3] == mtm[3]) && (pMAC3.destMACAddr[4] == mtm[4]) && (pMAC3.destMACAddr[5] == mtm[5]))) && (sockAddr_out.sll_protocol == htons(ETH_P_IP)) && (nomeflag == false || ((*(unsigned int*)&mti_binary) != (*(unsigned int*)&pIP4MAC3.ip4Header.DSTIP))))){
         //if ((!((pIP4MAC3.ip4Header.SRCIP[0]==0 && pIP4MAC3.ip4Header.SRCIP[1]==0 && pIP4MAC3.ip4Header.SRCIP[2]==0 && pIP4MAC3.ip4Header.SRCIP[3]==0) || (pIP4MAC3.ip4Header.SRCIP[0]==255 && pIP4MAC3.ip4Header.SRCIP[1]==255 && pIP4MAC3.ip4Header.SRCIP[2]==255 && pIP4MAC3.ip4Header.SRCIP[3]==255))) && ((((pMAC3.destMACAddr[0] == mtm[0]) && (pMAC3.destMACAddr[1] == mtm[1]) && (pMAC3.destMACAddr[2] == mtm[2]) && (pMAC3.destMACAddr[3] == mtm[3]) && (pMAC3.destMACAddr[4] == mtm[4]) && (pMAC3.destMACAddr[5] == mtm[5]))) && (sockAddr_out.sll_protocol == htons(ETH_P_IP)) && (nomeflag == false || ((*(unsigned int*)&mti_binary) != (*(unsigned int*)&pIP4MAC3.ip4Header.DSTIP))))){
@@ -1289,7 +1293,7 @@ pMAC3_maniplation:
                 }*/
                 memcpy(pIP4MAC3.srcMACAddr, mtm, sizeof(pMAC.srcMACAddr));
                 memcpy(pIP4MAC3.destMACAddr, msm, sizeof(pMAC.srcMACAddr));
-                decipchecksum((IP4Header*)&pIP4MAC3.ip4Header);
+                //decipchecksum((IP4Header*)&pIP4MAC3.ip4Header);
                 pIP4MAC3.ip4Header.SRCIP[0] = nsi_binary[0];
                 pIP4MAC3.ip4Header.SRCIP[1] = nsi_binary[1];
                 pIP4MAC3.ip4Header.SRCIP[2] = nsi_binary[2];
@@ -1298,9 +1302,9 @@ pMAC3_maniplation:
                 pIP4MAC3.ip4Header.DSTIP[1] = ndi_binary[1];
                 pIP4MAC3.ip4Header.DSTIP[2] = ndi_binary[2];
                 pIP4MAC3.ip4Header.DSTIP[3] = ndi_binary[3];
-                ip4portswap((IP4Header*)&pIP4MAC3.ip4Header);
-                //calculateipchksum((IP4Header*)&pIP4MAC3.ip4Header);
-                incipchecksum((IP4Header*)&pIP4MAC3.ip4Header);
+                //ip4portswap((IP4Header*)&pIP4MAC3.ip4Header);
+                calculateipchksum((IP4Header*)&pIP4MAC3.ip4Header);
+                //incipchecksum((IP4Header*)&pIP4MAC3.ip4Header);
                 sockAddr.sll_ifindex = ifindex4in;
                 sockAddr_out_arp.sll_ifindex = ifindex4out;
                 sockAddrghx.sll_ifindex = ifindex4in;
