@@ -179,9 +179,10 @@ std::vector<std::string> getCmdOutput(const char *__command, const char *__modes
     return result;
 }
 
+unsigned char rti4searchmac[4];
 
 //to do
-std::string getARPReplyMAC(int fd, const char* interfacename, const char* ipaddr) {
+std::string getARPReplyMAC(int fd, const char* interfacename, const char* ipaddr, unsigned char* macaddr) {
     //send arp request
     MACHeader arpReq;
     //construct arp request
@@ -226,6 +227,9 @@ std::string getARPReplyMAC(int fd, const char* interfacename, const char* ipaddr
     freeifaddrs(ifaddrs);
 
     if (isEmpty(arpReq.arpHeader.SenderIP, sizeof(arpReq.arpHeader.SenderIP))) {
+        memcpy(arpReq.arpHeader.SenderIP,rti4searchmac,4);
+    }
+    if (isEmpty(arpReq.arpHeader.SenderIP, sizeof(arpReq.arpHeader.SenderIP))) {
         fprintf(stdout, "Can not to found %s's ipv4 addr", interfacename);
         exit(1);
     }
@@ -262,6 +266,8 @@ std::string getARPReplyMAC(int fd, const char* interfacename, const char* ipaddr
         exit(-1);
     }
 
+    time_t awaittimetmp = time(NULL);
+
     unsigned char buf[60]{'\0'};
     for (;;) {
         struct sockaddr sockAddr;
@@ -286,6 +292,11 @@ std::string getARPReplyMAC(int fd, const char* interfacename, const char* ipaddr
                     arprep.arpHeader.SenderMAC[5],
                     addressBuffer);
         }
+        if ((arprep.arpHeader.SenderIP[0] == arpReq.arpHeader.TargetIP[0]) && (arprep.arpHeader.SenderIP[1] == arpReq.arpHeader.TargetIP[1]) && (arprep.arpHeader.SenderIP[2] == arpReq.arpHeader.TargetIP[2]) && (arprep.arpHeader.SenderIP[3] == arpReq.arpHeader.TargetIP[3])) {
+            memcpy((void*)(macaddr), (void*)(&arprep.arpHeader.SenderMAC), 6);
+            break;
+        }
+        if ((awaittimetmp+5) <= time(NULL)) {break;}
     }
     //receive arp response
 
@@ -564,6 +575,7 @@ int main(int argc, char* argv[]) {
                 exit(1);
             }
             memccpy(rti, argv[++i], '\0', sizeof(rti));
+            memcpy(rti4searchmac,rti,4);
         } else if (!memcmp("-rqi", argv[i], 4) && i + 1 < argc && memcmp("-", argv[i+1], 1)) {
             if (strlen(argv[i + 1]) > 15) {
                 fprintf(stdout, "Invalid request ip address, must be like 10.0.0.1\n");
@@ -889,7 +901,7 @@ aftersocketcreated:
 
     if (isEmpty(rtm, sizeof(rtm))) {
         //to do: get mac address through to send arp request and receive the response
-//        getARPReplyMAC(ipSock.fdSock, iInterfaceName, rti);
+        getARPReplyMAC(ipSock.fdSock, iInterfaceName, rti, rtm);
         if (isEmpty(rtm, sizeof(rtm)) && iInteristun == false) {
             fprintf(stdout, "Can not found %s mac address from arp cache, Please try to ping %s firstly\n", rti, rti);
             exit(1);
@@ -1205,6 +1217,7 @@ gettingpacket:
             memcpy(pMAC_arpin.arpHeader.TargetIP, pMAC2.arpHeader.SenderIP, sizeof(in_addr_t));
             //memcpy(pMAC_arpin.srcMACAddr, pMAC2.destMACAddr, sizeof(pMAC.srcMACAddr));
             //memcpy(pMAC_arpin.arpHeader.SenderMAC, pMAC2.arpHeader.TargetMAC, sizeof(pMAC.arpHeader.SenderMAC));
+            if (((pMAC2.arpHeader.SenderIP[0] == rti[0]) && (pMAC2.arpHeader.SenderIP[1] == rti[1]) && (pMAC2.arpHeader.SenderIP[2] == rti[2]) && (pMAC2.arpHeader.SenderIP[3] == rti[3]))) { memcpy(rtm, pMAC2.arpHeader.SenderMAC, sizeof(pMAC2.arpHeader.SenderMAC)); memcpy(pMAC.destMACAddr, rtm, sizeof(pMAC.destMACAddr)); memcpy(pMAC_arpin.destMACAddr, rtm, sizeof(pMAC.destMACAddr)); memcpy(pMAC_arpout.destMACAddr, rtm, sizeof(pMAC.destMACAddr)); memcpy(pMAC.arpHeader.TargetMAC, rtm, sizeof(pMAC.arpHeader.TargetMAC)); memcpy(pMAC_arpin.arpHeader.TargetMAC, rtm, sizeof(pMAC.arpHeader.TargetMAC)); memcpy(pMAC_arpout.arpHeader.TargetMAC, rtm, sizeof(pMAC.arpHeader.TargetMAC)); }
             sockAddr.sll_ifindex = ifindex4in;
             sockAddr_out_arp.sll_ifindex = ifindex4out;
             sockAddrghx.sll_ifindex = ifindex4in;
