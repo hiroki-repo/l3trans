@@ -1186,8 +1186,8 @@ gettingpacket:
             perror("Receiveing failure(iInterface)");
             ghxsiz = 0;
         }
-        if (sockAddrghx.sll_pkttype==PACKET_OUTGOING){ ghxsiz = 0; goto pMAC3_maniplation_; }
-        if (!(sockAddrghx.sll_pkttype==PACKET_OUTGOING)){
+        if (sockAddrghx.sll_pkttype!=PACKET_HOST && sockAddrghx.sll_pkttype!=PACKET_MULTICAST && sockAddrghx.sll_pkttype!=PACKET_BROADCAST && sockAddrghx.sll_pkttype!=PACKET_OTHERHOST){ ghxsiz = 0; goto pMAC3_maniplation_; }
+        if (!(sockAddrghx.sll_pkttype!=PACKET_HOST && sockAddrghx.sll_pkttype!=PACKET_MULTICAST && sockAddrghx.sll_pkttype!=PACKET_BROADCAST && sockAddrghx.sll_pkttype!=PACKET_OTHERHOST) && (sockAddrghx.sll_ifindex == ifindex4in)){
         if (iInteristun == true){
             sockAddrghx.sll_protocol == htons(ETH_P_IP);
             memcpy(pIP4MAC2.srcMACAddr, pMAC.destMACAddr, sizeof(pMAC.srcMACAddr));
@@ -1343,8 +1343,8 @@ pMAC3_maniplation:
             perror("Receiveing failure(oInterface)");
             ghzsiz = 0;
         }
-        if (sockAddr_out.sll_pkttype==PACKET_OUTGOING){ ghzsiz = 0; goto pMAC3_maniplation_; }
-        if (!(sockAddr_out.sll_pkttype==PACKET_OUTGOING)){
+        if (sockAddr_out.sll_pkttype!=PACKET_HOST && sockAddr_out.sll_pkttype!=PACKET_MULTICAST && sockAddr_out.sll_pkttype!=PACKET_BROADCAST && sockAddr_out.sll_pkttype!=PACKET_OTHERHOST){ ghzsiz = 0; goto pMAC3_maniplation_; }
+        if (!(sockAddr_out.sll_pkttype!=PACKET_HOST && sockAddr_out.sll_pkttype!=PACKET_MULTICAST && sockAddr_out.sll_pkttype!=PACKET_BROADCAST && sockAddr_out.sll_pkttype!=PACKET_OTHERHOST) && (sockAddr_out.sll_ifindex == ifindex4out)){
         if (oInteristun == true){
             sockAddr_out.sll_protocol == htons(ETH_P_IP);
             memcpy(pIP4MAC3.srcMACAddr, msm, sizeof(pMAC.srcMACAddr));
