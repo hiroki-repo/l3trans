@@ -124,6 +124,8 @@ unsigned long timeofpooling;
 
 bool nataddr4host = false;
 
+unsigned char incdec_ttl{'\0'};
+
 unsigned char ghxbuf[65536]{'\0'};
 unsigned char ghzbuf[65536]{'\0'};
 unsigned char ghybuf[sizeof(MACHeader)]{'\0'};
@@ -729,6 +731,9 @@ int main(int argc, char* argv[]) {
             recvonly = true;
         } else if (!memcmp("-promisc", argv[i], 9)){
             isl3promisc = true;
+        } else if (!memcmp("-ttl", argv[i], 4)) {
+            char * pEnd;
+            incdec_ttl = (unsigned char) strtol(argv[++i], &pEnd, 10);
         } else {
             usage();
             exit(1);
@@ -1221,6 +1226,9 @@ gettingpacket:
                 pIP4MAC2.ip4Header.DSTIP[2] = ndi_binary[2];
                 pIP4MAC2.ip4Header.DSTIP[3] = ndi_binary[3];
                 //calculateipchksum((IP4Header*)&pIP4MAC2.ip4Header);
+                /*if (incdec_ttl!=0){
+                    pIP4MAC2.ip4Header.TTL += incdec_ttl;
+                }*/
                 incipchecksum((IP4Header*)&pIP4MAC2.ip4Header);
             } else if (((ndi_binary[0] == pIP4MAC2.ip4Header.SRCIP[0]) && (ndi_binary[1] == pIP4MAC2.ip4Header.SRCIP[1]) && (ndi_binary[2] == pIP4MAC2.ip4Header.SRCIP[2]) && (ndi_binary[3] == pIP4MAC2.ip4Header.SRCIP[3]))) {
                 decipchecksum((IP4Header*)&pIP4MAC2.ip4Header);
@@ -1229,6 +1237,9 @@ gettingpacket:
                 pIP4MAC2.ip4Header.SRCIP[2] = nsi_binary[2];
                 pIP4MAC2.ip4Header.SRCIP[3] = nsi_binary[3];
                 //calculateipchksum((IP4Header*)&pIP4MAC2.ip4Header);
+                /*if (incdec_ttl!=0){
+                    pIP4MAC2.ip4Header.TTL += incdec_ttl;
+                }*/
                 incipchecksum((IP4Header*)&pIP4MAC2.ip4Header);
             } else if (((ndi_binary[0] == pIP4MAC2.ip4Header.DSTIP[0]) && (ndi_binary[1] == pIP4MAC2.ip4Header.DSTIP[1]) && (ndi_binary[2] == pIP4MAC2.ip4Header.DSTIP[2]) && (ndi_binary[3] == pIP4MAC2.ip4Header.DSTIP[3]))) {
                 decipchecksum((IP4Header*)&pIP4MAC2.ip4Header);
@@ -1237,6 +1248,9 @@ gettingpacket:
                 pIP4MAC2.ip4Header.DSTIP[2] = nsi_binary[2];
                 pIP4MAC2.ip4Header.DSTIP[3] = nsi_binary[3];
                 //calculateipchksum((IP4Header*)&pIP4MAC2.ip4Header);
+                /*if (incdec_ttl!=0){
+                    pIP4MAC2.ip4Header.TTL += incdec_ttl;
+                }*/
                 incipchecksum((IP4Header*)&pIP4MAC2.ip4Header);
             } else if (((nsi_binary[0] == pIP4MAC2.ip4Header.SRCIP[0]) && (nsi_binary[1] == pIP4MAC2.ip4Header.SRCIP[1]) && (nsi_binary[2] == pIP4MAC2.ip4Header.SRCIP[2]) && (nsi_binary[3] == pIP4MAC2.ip4Header.SRCIP[3]))) {
                 decipchecksum((IP4Header*)&pIP4MAC2.ip4Header);
@@ -1245,8 +1259,15 @@ gettingpacket:
                 pIP4MAC2.ip4Header.SRCIP[2] = ndi_binary[2];
                 pIP4MAC2.ip4Header.SRCIP[3] = ndi_binary[3];
                 //calculateipchksum((IP4Header*)&pIP4MAC2.ip4Header);
+                /*if (incdec_ttl!=0){
+                    pIP4MAC2.ip4Header.TTL += incdec_ttl;
+                }*/
                 incipchecksum((IP4Header*)&pIP4MAC2.ip4Header);
-            }
+            }/* else if (incdec_ttl!=0){
+                decipchecksum((IP4Header*)&pIP4MAC2.ip4Header);
+                pIP4MAC2.ip4Header.TTL += incdec_ttl;
+                incipchecksum((IP4Header*)&pIP4MAC2.ip4Header);
+            }*/
             sockAddr.sll_ifindex = ifindex4in;
             sockAddr_out_arp.sll_ifindex = ifindex4out;
             sockAddrghx.sll_ifindex = ifindex4in;
@@ -1425,6 +1446,9 @@ pMAC3_maniplation:
                     pIP4MAC3.ip4Header.SRCIP[2] = nsi_binary[2];
                     pIP4MAC3.ip4Header.SRCIP[3] = nsi_binary[3];
                     //calculateipchksum((IP4Header*)&pIP4MAC3.ip4Header);
+                    if (incdec_ttl!=0){
+                        pIP4MAC3.ip4Header.TTL += incdec_ttl;
+                    }
                     incipchecksum((IP4Header*)&pIP4MAC3.ip4Header);
                 } else if (((nsi_binary[0] == pIP4MAC3.ip4Header.DSTIP[0]) && (nsi_binary[1] == pIP4MAC3.ip4Header.DSTIP[1]) && (nsi_binary[2] == pIP4MAC3.ip4Header.DSTIP[2]) && (nsi_binary[3] == pIP4MAC3.ip4Header.DSTIP[3]))) {
                     decipchecksum((IP4Header*)&pIP4MAC3.ip4Header);
@@ -1433,6 +1457,9 @@ pMAC3_maniplation:
                     pIP4MAC3.ip4Header.DSTIP[2] = ndi_binary[2];
                     pIP4MAC3.ip4Header.DSTIP[3] = ndi_binary[3];
                     //calculateipchksum((IP4Header*)&pIP4MAC3.ip4Header);
+                    if (incdec_ttl!=0){
+                        pIP4MAC3.ip4Header.TTL += incdec_ttl;
+                    }
                     incipchecksum((IP4Header*)&pIP4MAC3.ip4Header);
                 } else if (((nsi_binary[0] == pIP4MAC3.ip4Header.SRCIP[0]) && (nsi_binary[1] == pIP4MAC3.ip4Header.SRCIP[1]) && (nsi_binary[2] == pIP4MAC3.ip4Header.SRCIP[2]) && (nsi_binary[3] == pIP4MAC3.ip4Header.SRCIP[3]))) {
                     decipchecksum((IP4Header*)&pIP4MAC3.ip4Header);
@@ -1441,6 +1468,9 @@ pMAC3_maniplation:
                     pIP4MAC3.ip4Header.SRCIP[2] = ndi_binary[2];
                     pIP4MAC3.ip4Header.SRCIP[3] = ndi_binary[3];
                     //calculateipchksum((IP4Header*)&pIP4MAC3.ip4Header);
+                    if (incdec_ttl!=0){
+                        pIP4MAC3.ip4Header.TTL += incdec_ttl;
+                    }
                     incipchecksum((IP4Header*)&pIP4MAC3.ip4Header);
                 } else if (((ndi_binary[0] == pIP4MAC3.ip4Header.DSTIP[0]) && (ndi_binary[1] == pIP4MAC3.ip4Header.DSTIP[1]) && (ndi_binary[2] == pIP4MAC3.ip4Header.DSTIP[2]) && (ndi_binary[3] == pIP4MAC3.ip4Header.DSTIP[3]))) {
                     decipchecksum((IP4Header*)&pIP4MAC3.ip4Header);
@@ -1449,7 +1479,14 @@ pMAC3_maniplation:
                     pIP4MAC3.ip4Header.DSTIP[2] = nsi_binary[2];
                     pIP4MAC3.ip4Header.DSTIP[3] = nsi_binary[3];
                     //calculateipchksum((IP4Header*)&pIP4MAC3.ip4Header);
+                    if (incdec_ttl!=0){
+                        pIP4MAC3.ip4Header.TTL += incdec_ttl;
+                    }
                     incipchecksum((IP4Header*)&pIP4MAC3.ip4Header);
+                } else if (incdec_ttl!=0){
+                    decipchecksum((IP4Header*)&pIP4MAC2.ip4Header);
+                    pIP4MAC3.ip4Header.TTL += incdec_ttl;
+                    incipchecksum((IP4Header*)&pIP4MAC2.ip4Header);
                 }
                 sockAddr.sll_ifindex = ifindex4in;
                 sockAddr_out_arp.sll_ifindex = ifindex4out;
