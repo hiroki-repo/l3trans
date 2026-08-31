@@ -39,6 +39,8 @@ unsigned char mysubnetmask[4]{0};
 unsigned char mti_binary[4]{0};
 unsigned char nsi_binary[4]{0};
 unsigned char ndi_binary[4]{0};
+unsigned char nsp_binary[4]{0};
+unsigned char ndp_binary[4]{0};
 
 struct __attribute__((packed)) ARPHeader
 {
@@ -596,6 +598,8 @@ int main(int argc, char* argv[]) {
     unsigned char mtm[32]{'\0'};
     char nsi[16]{'\0'};
     char ndi[16]{'\0'};
+    char nsp[16]{'\0'};
+    char ndp[16]{'\0'};
     char iInterfaceName[96]{'\0'};
     char oInterfaceName[96]{'\0'};
     int iInterval = 1;
@@ -643,6 +647,18 @@ int main(int argc, char* argv[]) {
                 exit(1);
             }
             memccpy(ndi, argv[++i], '\0', sizeof(mti));
+        } else if (!memcmp("-nsp", argv[i], 4) && i + 1 < argc && memcmp("-", argv[i+1], 1)) {
+            if (strlen(argv[i + 1]) > 15) {
+                fprintf(stdout, "Invalid request ip address, must be like 10.0.0.1\n");
+                exit(1);
+            }
+            memccpy(nsp, argv[++i], '\0', sizeof(mti));
+        } else if (!memcmp("-ndp", argv[i], 4) && i + 1 < argc && memcmp("-", argv[i+1], 1)) {
+            if (strlen(argv[i + 1]) > 15) {
+                fprintf(stdout, "Invalid request ip address, must be like 10.0.0.1\n");
+                exit(1);
+            }
+            memccpy(ndp, argv[++i], '\0', sizeof(mti));
         } else if (!memcmp("-rtm", argv[i], 4) && i + 1 < argc && memcmp("-", argv[i+1], 1)) {
             if (strlen(argv[i + 1]) != 17) {
                 fprintf(stdout, "Invalid mac address, must be like this 00:00:00:00:00:00 or 00-00-00-00-00-00\n");
@@ -1053,6 +1069,10 @@ aftersocketcreated:
         memcpy(nsi_binary, (void*)(&tmp), sizeof(in_addr_t));
         tmp = inet_addr(ndi);
         memcpy(ndi_binary, (void*)(&tmp), sizeof(in_addr_t));
+        tmp = inet_addr(nsp);
+        memcpy(nsp_binary, (void*)(&tmp), sizeof(in_addr_t));
+        tmp = inet_addr(ndp);
+        memcpy(ndp_binary, (void*)(&tmp), sizeof(in_addr_t));
         (*(unsigned int *)&myinterfaceip) = (unsigned int)inet_addr(rqi);
     }
 
@@ -1258,6 +1278,50 @@ gettingpacket:
                 pIP4MAC2.ip4Header.SRCIP[1] = ndi_binary[1];
                 pIP4MAC2.ip4Header.SRCIP[2] = ndi_binary[2];
                 pIP4MAC2.ip4Header.SRCIP[3] = ndi_binary[3];
+                //calculateipchksum((IP4Header*)&pIP4MAC2.ip4Header);
+                /*if (incdec_ttl!=0){
+                    pIP4MAC2.ip4Header.TTL += incdec_ttl;
+                }*/
+                incipchecksum((IP4Header*)&pIP4MAC2.ip4Header);
+            } else if ((((nsp_binary[0] & mysubnetmask[0]) == (pIP4MAC2.ip4Header.DSTIP[0] & mysubnetmask[0])) && ((nsp_binary[1] & mysubnetmask[1]) == (pIP4MAC2.ip4Header.DSTIP[1] & mysubnetmask[1])) && ((nsp_binary[2] & mysubnetmask[2]) == (pIP4MAC2.ip4Header.DSTIP[2] & mysubnetmask[2])) && ((nsp_binary[3] & mysubnetmask[3]) == (pIP4MAC2.ip4Header.DSTIP[3] & mysubnetmask[3])))) {
+                decipchecksum((IP4Header*)&pIP4MAC2.ip4Header);
+                pIP4MAC2.ip4Header.DSTIP[0] = (ndp_binary[0] & mysubnetmask[0]) | (pIP4MAC2.ip4Header.DSTIP[0] & ~mysubnetmask[0]);
+                pIP4MAC2.ip4Header.DSTIP[1] = (ndp_binary[1] & mysubnetmask[1]) | (pIP4MAC2.ip4Header.DSTIP[1] & ~mysubnetmask[1]);
+                pIP4MAC2.ip4Header.DSTIP[2] = (ndp_binary[2] & mysubnetmask[2]) | (pIP4MAC2.ip4Header.DSTIP[2] & ~mysubnetmask[2]);
+                pIP4MAC2.ip4Header.DSTIP[3] = (ndp_binary[3] & mysubnetmask[3]) | (pIP4MAC2.ip4Header.DSTIP[3] & ~mysubnetmask[3]);
+                //calculateipchksum((IP4Header*)&pIP4MAC2.ip4Header);
+                /*if (incdec_ttl!=0){
+                    pIP4MAC2.ip4Header.TTL += incdec_ttl;
+                }*/
+                incipchecksum((IP4Header*)&pIP4MAC2.ip4Header);
+            } else if ((((ndp_binary[0] & mysubnetmask[0]) == (pIP4MAC2.ip4Header.SRCIP[0] & mysubnetmask[0])) && ((ndp_binary[1] & mysubnetmask[1]) == (pIP4MAC2.ip4Header.SRCIP[1] & mysubnetmask[1])) && ((ndp_binary[2] & mysubnetmask[2]) == (pIP4MAC2.ip4Header.SRCIP[2] & mysubnetmask[2])) && ((ndp_binary[3] & mysubnetmask[3]) == (pIP4MAC2.ip4Header.SRCIP[3] & mysubnetmask[3])))) {
+                decipchecksum((IP4Header*)&pIP4MAC2.ip4Header);
+                pIP4MAC2.ip4Header.SRCIP[0] = (nsp_binary[0] & mysubnetmask[0]) | (pIP4MAC2.ip4Header.SRCIP[0] & ~mysubnetmask[0]);
+                pIP4MAC2.ip4Header.SRCIP[1] = (nsp_binary[1] & mysubnetmask[1]) | (pIP4MAC2.ip4Header.SRCIP[1] & ~mysubnetmask[1]);
+                pIP4MAC2.ip4Header.SRCIP[2] = (nsp_binary[2] & mysubnetmask[2]) | (pIP4MAC2.ip4Header.SRCIP[2] & ~mysubnetmask[2]);
+                pIP4MAC2.ip4Header.SRCIP[3] = (nsp_binary[3] & mysubnetmask[3]) | (pIP4MAC2.ip4Header.SRCIP[3] & ~mysubnetmask[3]);
+                //calculateipchksum((IP4Header*)&pIP4MAC2.ip4Header);
+                /*if (incdec_ttl!=0){
+                    pIP4MAC2.ip4Header.TTL += incdec_ttl;
+                }*/
+                incipchecksum((IP4Header*)&pIP4MAC2.ip4Header);
+            } else if ((((ndp_binary[0] & mysubnetmask[0]) == (pIP4MAC2.ip4Header.DSTIP[0] & mysubnetmask[0])) && ((ndp_binary[1] & mysubnetmask[1]) == (pIP4MAC2.ip4Header.DSTIP[1] & mysubnetmask[1])) && ((ndp_binary[2] & mysubnetmask[2]) == (pIP4MAC2.ip4Header.DSTIP[2] & mysubnetmask[2])) && ((ndp_binary[3] & mysubnetmask[3]) == (pIP4MAC2.ip4Header.DSTIP[3] & mysubnetmask[3])))) {
+                decipchecksum((IP4Header*)&pIP4MAC2.ip4Header);
+                pIP4MAC2.ip4Header.DSTIP[0] = (nsp_binary[0] & mysubnetmask[0]) | (pIP4MAC2.ip4Header.DSTIP[0] & ~mysubnetmask[0]);
+                pIP4MAC2.ip4Header.DSTIP[1] = (nsp_binary[1] & mysubnetmask[1]) | (pIP4MAC2.ip4Header.DSTIP[1] & ~mysubnetmask[1]);
+                pIP4MAC2.ip4Header.DSTIP[2] = (nsp_binary[2] & mysubnetmask[2]) | (pIP4MAC2.ip4Header.DSTIP[2] & ~mysubnetmask[2]);
+                pIP4MAC2.ip4Header.DSTIP[3] = (nsp_binary[3] & mysubnetmask[3]) | (pIP4MAC2.ip4Header.DSTIP[3] & ~mysubnetmask[3]);
+                //calculateipchksum((IP4Header*)&pIP4MAC2.ip4Header);
+                /*if (incdec_ttl!=0){
+                    pIP4MAC2.ip4Header.TTL += incdec_ttl;
+                }*/
+                incipchecksum((IP4Header*)&pIP4MAC2.ip4Header);
+            } else if ((((nsp_binary[0] & mysubnetmask[0]) == (pIP4MAC2.ip4Header.SRCIP[0] & mysubnetmask[0])) && ((nsp_binary[1] & mysubnetmask[1]) == (pIP4MAC2.ip4Header.SRCIP[1] & mysubnetmask[1])) && ((nsp_binary[2] & mysubnetmask[2]) == (pIP4MAC2.ip4Header.SRCIP[2] & mysubnetmask[2])) && ((nsp_binary[3] & mysubnetmask[3]) == (pIP4MAC2.ip4Header.SRCIP[3] & mysubnetmask[3])))) {
+                decipchecksum((IP4Header*)&pIP4MAC2.ip4Header);
+                pIP4MAC2.ip4Header.SRCIP[0] = (ndp_binary[0] & mysubnetmask[0]) | (pIP4MAC2.ip4Header.SRCIP[0] & ~mysubnetmask[0]);
+                pIP4MAC2.ip4Header.SRCIP[1] = (ndp_binary[1] & mysubnetmask[1]) | (pIP4MAC2.ip4Header.SRCIP[1] & ~mysubnetmask[1]);
+                pIP4MAC2.ip4Header.SRCIP[2] = (ndp_binary[2] & mysubnetmask[2]) | (pIP4MAC2.ip4Header.SRCIP[2] & ~mysubnetmask[2]);
+                pIP4MAC2.ip4Header.SRCIP[3] = (ndp_binary[3] & mysubnetmask[3]) | (pIP4MAC2.ip4Header.SRCIP[3] & ~mysubnetmask[3]);
                 //calculateipchksum((IP4Header*)&pIP4MAC2.ip4Header);
                 /*if (incdec_ttl!=0){
                     pIP4MAC2.ip4Header.TTL += incdec_ttl;
@@ -1483,10 +1547,54 @@ pMAC3_maniplation:
                         pIP4MAC3.ip4Header.TTL += incdec_ttl;
                     }
                     incipchecksum((IP4Header*)&pIP4MAC3.ip4Header);
-                } else if (incdec_ttl!=0){
+                } else if ((((ndp_binary[0] & mysubnetmask[0]) == (pIP4MAC3.ip4Header.SRCIP[0] & mysubnetmask[0])) && ((ndp_binary[1] & mysubnetmask[1]) == (pIP4MAC3.ip4Header.SRCIP[1] & mysubnetmask[1])) && ((ndp_binary[2] & mysubnetmask[2]) == (pIP4MAC3.ip4Header.SRCIP[2] & mysubnetmask[2])) && ((ndp_binary[3] & mysubnetmask[3]) == (pIP4MAC3.ip4Header.SRCIP[3] & mysubnetmask[3])))) {
                     decipchecksum((IP4Header*)&pIP4MAC2.ip4Header);
-                    pIP4MAC3.ip4Header.TTL += incdec_ttl;
+                    pIP4MAC3.ip4Header.SRCIP[0] = (nsp_binary[0] & mysubnetmask[0]) | (pIP4MAC3.ip4Header.SRCIP[0] & ~mysubnetmask[0]);
+                    pIP4MAC3.ip4Header.SRCIP[1] = (nsp_binary[1] & mysubnetmask[1]) | (pIP4MAC3.ip4Header.SRCIP[1] & ~mysubnetmask[1]);
+                    pIP4MAC3.ip4Header.SRCIP[2] = (nsp_binary[2] & mysubnetmask[2]) | (pIP4MAC3.ip4Header.SRCIP[2] & ~mysubnetmask[2]);
+                    pIP4MAC3.ip4Header.SRCIP[3] = (nsp_binary[3] & mysubnetmask[3]) | (pIP4MAC3.ip4Header.SRCIP[3] & ~mysubnetmask[3]);
+                    //calculateipchksum((IP4Header*)&pIP4MAC2.ip4Header);
+                    if (incdec_ttl!=0){
+                        pIP4MAC3.ip4Header.TTL += incdec_ttl;
+                    }
                     incipchecksum((IP4Header*)&pIP4MAC2.ip4Header);
+                } else if ((((nsp_binary[0] & mysubnetmask[0]) == (pIP4MAC3.ip4Header.DSTIP[0] & mysubnetmask[0])) && ((nsp_binary[1] & mysubnetmask[1]) == (pIP4MAC3.ip4Header.DSTIP[1] & mysubnetmask[1])) && ((nsp_binary[2] & mysubnetmask[2]) == (pIP4MAC3.ip4Header.DSTIP[2] & mysubnetmask[2])) && ((nsp_binary[3] & mysubnetmask[3]) == (pIP4MAC3.ip4Header.DSTIP[3] & mysubnetmask[3])))) {
+                    decipchecksum((IP4Header*)&pIP4MAC2.ip4Header);
+                    pIP4MAC3.ip4Header.DSTIP[0] = (ndp_binary[0] & mysubnetmask[0]) | (pIP4MAC3.ip4Header.DSTIP[0] & ~mysubnetmask[0]);
+                    pIP4MAC3.ip4Header.DSTIP[1] = (ndp_binary[1] & mysubnetmask[1]) | (pIP4MAC3.ip4Header.DSTIP[1] & ~mysubnetmask[1]);
+                    pIP4MAC3.ip4Header.DSTIP[2] = (ndp_binary[2] & mysubnetmask[2]) | (pIP4MAC3.ip4Header.DSTIP[2] & ~mysubnetmask[2]);
+                    pIP4MAC3.ip4Header.DSTIP[3] = (ndp_binary[3] & mysubnetmask[3]) | (pIP4MAC3.ip4Header.DSTIP[3] & ~mysubnetmask[3]);
+                    //calculateipchksum((IP4Header*)&pIP4MAC2.ip4Header);
+                    if (incdec_ttl!=0){
+                        pIP4MAC3.ip4Header.TTL += incdec_ttl;
+                    }
+                    incipchecksum((IP4Header*)&pIP4MAC2.ip4Header);
+                } else if ((((nsp_binary[0] & mysubnetmask[0]) == (pIP4MAC3.ip4Header.SRCIP[0] & mysubnetmask[0])) && ((nsp_binary[1] & mysubnetmask[1]) == (pIP4MAC3.ip4Header.SRCIP[1] & mysubnetmask[1])) && ((nsp_binary[2] & mysubnetmask[2]) == (pIP4MAC3.ip4Header.SRCIP[2] & mysubnetmask[2])) && ((nsp_binary[3] & mysubnetmask[3]) == (pIP4MAC3.ip4Header.SRCIP[3] & mysubnetmask[3])))) {
+                    decipchecksum((IP4Header*)&pIP4MAC2.ip4Header);
+                    pIP4MAC3.ip4Header.SRCIP[0] = (ndp_binary[0] & mysubnetmask[0]) | (pIP4MAC3.ip4Header.SRCIP[0] & ~mysubnetmask[0]);
+                    pIP4MAC3.ip4Header.SRCIP[1] = (ndp_binary[1] & mysubnetmask[1]) | (pIP4MAC3.ip4Header.SRCIP[1] & ~mysubnetmask[1]);
+                    pIP4MAC3.ip4Header.SRCIP[2] = (ndp_binary[2] & mysubnetmask[2]) | (pIP4MAC3.ip4Header.SRCIP[2] & ~mysubnetmask[2]);
+                    pIP4MAC3.ip4Header.SRCIP[3] = (ndp_binary[3] & mysubnetmask[3]) | (pIP4MAC3.ip4Header.SRCIP[3] & ~mysubnetmask[3]);
+                    //calculateipchksum((IP4Header*)&pIP4MAC2.ip4Header);
+                    if (incdec_ttl!=0){
+                        pIP4MAC3.ip4Header.TTL += incdec_ttl;
+                    }
+                    incipchecksum((IP4Header*)&pIP4MAC2.ip4Header);
+                } else if ((((ndp_binary[0] & mysubnetmask[0]) == (pIP4MAC3.ip4Header.DSTIP[0] & mysubnetmask[0])) && ((ndp_binary[1] & mysubnetmask[1]) == (pIP4MAC3.ip4Header.DSTIP[1] & mysubnetmask[1])) && ((ndp_binary[2] & mysubnetmask[2]) == (pIP4MAC3.ip4Header.DSTIP[2] & mysubnetmask[2])) && ((ndp_binary[3] & mysubnetmask[3]) == (pIP4MAC3.ip4Header.DSTIP[3] & mysubnetmask[3])))) {
+                    decipchecksum((IP4Header*)&pIP4MAC2.ip4Header);
+                    pIP4MAC3.ip4Header.DSTIP[0] = (nsp_binary[0] & mysubnetmask[0]) | (pIP4MAC3.ip4Header.DSTIP[0] & ~mysubnetmask[0]);
+                    pIP4MAC3.ip4Header.DSTIP[1] = (nsp_binary[1] & mysubnetmask[1]) | (pIP4MAC3.ip4Header.DSTIP[1] & ~mysubnetmask[1]);
+                    pIP4MAC3.ip4Header.DSTIP[2] = (nsp_binary[2] & mysubnetmask[2]) | (pIP4MAC3.ip4Header.DSTIP[2] & ~mysubnetmask[2]);
+                    pIP4MAC3.ip4Header.DSTIP[3] = (nsp_binary[3] & mysubnetmask[3]) | (pIP4MAC3.ip4Header.DSTIP[3] & ~mysubnetmask[3]);
+                    //calculateipchksum((IP4Header*)&pIP4MAC2.ip4Header);
+                    if (incdec_ttl!=0){
+                        pIP4MAC3.ip4Header.TTL += incdec_ttl;
+                    }
+                    incipchecksum((IP4Header*)&pIP4MAC2.ip4Header);
+                } else if (incdec_ttl!=0){
+                    decipchecksum((IP4Header*)&pIP4MAC3.ip4Header);
+                    pIP4MAC3.ip4Header.TTL += incdec_ttl;
+                    incipchecksum((IP4Header*)&pIP4MAC3.ip4Header);
                 }
                 sockAddr.sll_ifindex = ifindex4in;
                 sockAddr_out_arp.sll_ifindex = ifindex4out;
