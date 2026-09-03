@@ -894,18 +894,21 @@ aftersocketcreated:
     sockAddr.sll_hatype = htons(ARPHRD_ETHER);
     sockAddr.sll_pkttype = PACKET_BROADCAST;
     sockAddr.sll_halen = HW_ADDR_LENGTH;
+    if (iInteristun == true){sockAddr.sll_pkttype=0;sockAddr.sll_hatype=0;memset(sockAddr.sll_addr,0,8);sockAddr.sll_halen=0;}
     memset(sockAddr.sll_addr + HW_ADDR_LENGTH, '\0', 2);
     sockAddr_out_arp.sll_ifindex = ifreq_out.ifr_ifindex;
 
     sockAddr_out_arp.sll_hatype = htons(ARPHRD_ETHER);
     sockAddr_out_arp.sll_pkttype = PACKET_BROADCAST;
     sockAddr_out_arp.sll_halen = HW_ADDR_LENGTH;
+    if (oInteristun == true){sockAddr_out_arp.sll_pkttype=0;sockAddr_out_arp.sll_hatype=0;memset(sockAddr_out_arp.sll_addr,0,8);sockAddr_out_arp.sll_halen=0;}
     memset(sockAddr_out_arp.sll_addr + HW_ADDR_LENGTH, '\0', 2);
     sockAddrghx.sll_ifindex = ifreq.ifr_ifindex;
 
     sockAddrghx.sll_hatype = htons(ARPHRD_ETHER);
     sockAddrghx.sll_pkttype = PACKET_BROADCAST;
     sockAddrghx.sll_halen = HW_ADDR_LENGTH;
+    if (iInteristun == true){sockAddrghx.sll_pkttype=0;sockAddrghx.sll_hatype=0;memset(sockAddrghx.sll_addr,0,8); sockAddrghx.sll_halen=0;}
     memset(sockAddrghx.sll_addr + HW_ADDR_LENGTH, '\0', 2);
 
     sockAddr_out.sll_ifindex = ifreq_out.ifr_ifindex;
@@ -913,6 +916,7 @@ aftersocketcreated:
     sockAddr_out.sll_hatype = htons(ARPHRD_ETHER);
     sockAddr_out.sll_pkttype = PACKET_BROADCAST;
     sockAddr_out.sll_halen = HW_ADDR_LENGTH;
+    if (oInteristun == true){sockAddr_out.sll_pkttype=0;sockAddr_out.sll_hatype=0;memset(sockAddr_out.sll_addr,0,8); sockAddr_out.sll_halen=0;}
     memset(sockAddr_out.sll_addr + HW_ADDR_LENGTH, '\0', 2);
 
     if (-1 == ioctl(ipSock.fdSock, SIOCGIFHWADDR, &ifreq)) {
@@ -998,7 +1002,7 @@ aftersocketcreated:
         if (isrenewedsocket==false){
             isrenewedsocket = true;
             //close(ipSock.fdSock);
-            ipSock = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
+            ipSock = socket(AF_PACKET, SOCK_DGRAM, htons(ETH_P_IP));
             if (ipSock == -1) {
                 perror("socket():");
                 exit(1);
@@ -1020,7 +1024,7 @@ aftersocketcreated:
         if (isrenewedsocket==false){
             isrenewedsocket = true;
             //close(ipSock_out.fdSock);
-            ipSock_out = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
+            ipSock_out = socket(AF_PACKET, SOCK_DGRAM, htons(ETH_P_IP));
             if (ipSock_out == -1) {
                 perror("socket():");
                 exit(1);
@@ -1041,6 +1045,9 @@ aftersocketcreated:
     }
     if (setsockopt(ipSock_out.fdSock, SOL_PACKET, PACKET_IGNORE_OUTGOING, (void*)&valforpiog, sizeof(valforpiog)) < 0){
     }
+
+    /*bind(ipSock.fdSock,(struct sockaddr*)&sockAddr,sizeof(sockAddr));
+    bind(ipSock_out.fdSock,(struct sockaddr*)&sockAddr_out,sizeof(sockAddr_out));*/
 
     {
         //construct arp response
@@ -1190,6 +1197,7 @@ gettingpacket:
         sockAddrghx.sll_family = AF_PACKET;
         sockAddrghx.sll_halen = HW_ADDR_LENGTH;
         sockAddrghx.sll_protocol = htons(ETH_P_ALL);
+        if (iInteristun == true){memset(sockAddrghx.sll_addr,0,8);sockAddrghx.sll_halen=0;sockAddrghx.sll_protocol = htons(ETH_P_IP);}
         sockAddr.sll_ifindex = ifindex4in;
         sockAddr_out_arp.sll_ifindex = ifindex4out;
         sockAddrghx.sll_ifindex = ifindex4in;
@@ -1199,7 +1207,7 @@ gettingpacket:
             perror("Receiveing failure(iInterface)");
         }*/
         msg_iov_pktin.iov_base = (&ghxbuf + (iInteristun ? 14 : 0));
-        msg_iov_pktin.iov_len = sizeof(ghxbuf);
+        msg_iov_pktin.iov_len = (sizeof(ghxbuf) - (iInteristun ? 14 : 0));
         msg_header_pktin.msg_name = &sockAddrghx;
         msg_header_pktin.msg_namelen = sockAddrghxsiz;
         msg_header_pktin.msg_iov = &msg_iov_pktin;
@@ -1396,6 +1404,7 @@ pMAC3_maniplation:
         sockAddr_out.sll_family = AF_PACKET;
         sockAddr_out.sll_halen = HW_ADDR_LENGTH;
         sockAddr_out.sll_protocol = htons(ETH_P_ALL);
+        if (oInteristun == true){memset(sockAddr_out.sll_addr,0,8);sockAddr_out.sll_halen=0;sockAddr_out.sll_protocol = htons(ETH_P_IP);}
         sockAddr.sll_ifindex = ifindex4in;
         sockAddr_out_arp.sll_ifindex = ifindex4out;
         sockAddrghx.sll_ifindex = ifindex4in;
@@ -1405,7 +1414,7 @@ pMAC3_maniplation:
             perror("Receiveing failure(oInterface)");
         }*/
         msg_iov_pktout.iov_base = (&ghzbuf + (oInteristun ? 14 : 0));
-        msg_iov_pktout.iov_len = sizeof(ghzbuf);
+        msg_iov_pktout.iov_len = (sizeof(ghzbuf) - (oInteristun ? 14 : 0));
         msg_header_pktout.msg_name = &sockAddr_out;
         msg_header_pktout.msg_namelen = sockAddr_outsiz;
         msg_header_pktout.msg_iov = &msg_iov_pktout;
