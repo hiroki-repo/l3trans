@@ -852,22 +852,32 @@ int main(int argc, char* argv[]) {
     }
 aftersocketcreated:
 
-    struct sockaddr_ll sockAddr;
+    struct sockaddr_ll_1024 {
+        unsigned short sll_family;
+        unsigned short sll_protocol;
+        int            sll_ifindex;
+        unsigned short sll_hatype;
+        unsigned char  sll_pkttype;
+        unsigned char  sll_halen;
+        unsigned char  sll_addr[1024];
+    };
+
+    struct sockaddr_ll_1024 sockAddr;
     sockAddr.sll_family = AF_PACKET;
     sockAddr.sll_protocol = htons(ETH_P_ARP);
     sockAddr.sll_ifindex = if_nametoindex(iInterfaceName);
 
-    struct sockaddr_ll sockAddr_out_arp;
+    struct sockaddr_ll_1024 sockAddr_out_arp;
     sockAddr_out_arp.sll_family = AF_PACKET;
     sockAddr_out_arp.sll_protocol = htons(ETH_P_ARP);
     sockAddr_out_arp.sll_ifindex = if_nametoindex(oInterfaceName);
 
-    struct sockaddr_ll sockAddrghx;
+    struct sockaddr_ll_1024 sockAddrghx;
     sockAddrghx.sll_family = AF_PACKET;
     sockAddrghx.sll_protocol = htons(ETH_P_IP);
     sockAddrghx.sll_ifindex = if_nametoindex(iInterfaceName);
 
-    struct sockaddr_ll sockAddr_out;
+    struct sockaddr_ll_1024 sockAddr_out;
     sockAddr_out.sll_family = AF_PACKET;
     sockAddr_out.sll_protocol = htons(ETH_P_IP);
     sockAddr_out.sll_ifindex = if_nametoindex(oInterfaceName);
@@ -996,6 +1006,7 @@ aftersocketcreated:
     }
     if (!(ifreq.ifr_flags & IFF_BROADCAST) && (ifreq.ifr_flags & IFF_POINTOPOINT) && (ifreq.ifr_flags & IFF_NOARP)){
         iInteristun = true;
+#if 0
         sockAddr.sll_hatype = htons(ifreq.ifr_hwaddr.sa_family);
         sockAddr.sll_pkttype = PACKET_HOST;
         sockAddr.sll_family = AF_INET;
@@ -1015,9 +1026,11 @@ aftersocketcreated:
         }else{
             isrenewedsocket = false;
         }
+#endif
     }
     if (!(ifreq_out.ifr_flags & IFF_BROADCAST) && (ifreq_out.ifr_flags & IFF_POINTOPOINT) && (ifreq_out.ifr_flags & IFF_NOARP)){
         oInteristun = true;
+#if 0
         sockAddr_out.sll_hatype = htons(ifreq_out.ifr_hwaddr.sa_family);
         sockAddr_out.sll_pkttype = PACKET_HOST;
         sockAddr_out.sll_family = AF_INET;
@@ -1037,6 +1050,7 @@ aftersocketcreated:
         }else{
             isrenewedsocket = false;
         }
+#endif
     }
 
     int valforpiog = 1;
@@ -1149,6 +1163,8 @@ aftersocketcreated:
     memcpy(buf_arpout,buf,sizeof(MACHeader));
     iovec msg_iov_pktin, msg_iov_pktout;
     msghdr msg_header_pktin, msg_header_pktout;
+    unsigned short hatype_in = ARPHRD_ETHER;
+    unsigned short hatype_out = ARPHRD_ETHER;
 
     /*int pkt_ignore_og_enable = 1;
     if (setsockopt(ipSock.fdSock, SOL_SOCKET, PACKET_IGNORE_OUTGOING, (void*)&pkt_ignore_og_enable, sizeof(pkt_ignore_og_enable)) < 0){
@@ -1206,7 +1222,7 @@ gettingpacket:
         /*if (-1 == (ghxsiz = recvfrom(ipSock.fdSock, ghxbuf + (iInteristun ? 14 : 0), sizeof(ghxbuf), 0, (struct sockaddr *)&sockAddrghx, (socklen_t*)&sockAddrghxsiz))) {
             perror("Receiveing failure(iInterface)");
         }*/
-        msg_iov_pktin.iov_base = (&ghxbuf + (iInteristun ? 14 : 0));
+        msg_iov_pktin.iov_base = (((void*)&ghxbuf) + ((unsigned long long)(iInteristun ? 14 : 0)));
         msg_iov_pktin.iov_len = (sizeof(ghxbuf) - (iInteristun ? 14 : 0));
         msg_header_pktin.msg_name = &sockAddrghx;
         msg_header_pktin.msg_namelen = sockAddrghxsiz;
@@ -1216,8 +1232,8 @@ gettingpacket:
         msg_header_pktin.msg_controllen = 0;
         msg_header_pktin.msg_flags = 0;
         if (-1 == (ghxsiz = recvmsg(ipSock.fdSock, &msg_header_pktin, 0))) {
-            perror("Receiveing failure(iInterface)");
-            ghxsiz = 0;
+            if (iInteristun==false) {perror("Receiveing failure(iInterface)");}
+            ghxsiz = ifreq.ifr_mtu + 14;
         }
         if (sockAddrghx.sll_pkttype!=PACKET_HOST && sockAddrghx.sll_pkttype!=PACKET_MULTICAST && sockAddrghx.sll_pkttype!=PACKET_BROADCAST && sockAddrghx.sll_pkttype!=PACKET_OTHERHOST){ ghxsiz = 0; goto pMAC3_maniplation_; }
         if (!(sockAddrghx.sll_pkttype!=PACKET_HOST && sockAddrghx.sll_pkttype!=PACKET_MULTICAST && sockAddrghx.sll_pkttype!=PACKET_BROADCAST && sockAddrghx.sll_pkttype!=PACKET_OTHERHOST) && (sockAddrghx.sll_ifindex == ifindex4in)){
@@ -1333,7 +1349,7 @@ gettingpacket:
             sockAddr_out_arp.sll_ifindex = ifindex4out;
             sockAddrghx.sll_ifindex = ifindex4in;
             sockAddr_out.sll_ifindex = ifindex4out;
-            msg_iov_pktout.iov_base = (&ghxbuf + (oInteristun ? 14 : 0));
+            msg_iov_pktout.iov_base = (((void*)&ghxbuf) + ((unsigned long long)(oInteristun ? 14 : 0)));
             msg_iov_pktout.iov_len = (((ghxsiz & 0xFFFF) < (ifreq_out.ifr_mtu + (oInteristun ? 0 : 14))) ? (ghxsiz & 0xFFFF) : (ifreq_out.ifr_mtu + (oInteristun ? 0 : 14)));
             msg_header_pktout.msg_name = &sockAddr_out;
             msg_header_pktout.msg_namelen = sizeof(sockAddr_out);
@@ -1342,6 +1358,11 @@ gettingpacket:
             msg_header_pktout.msg_control = NULL;
             msg_header_pktout.msg_controllen = 0;
             msg_header_pktout.msg_flags = 0;
+            sockAddr_out.sll_protocol = htons(ETH_P_IP);
+            hatype_in = sockAddr_out.sll_hatype; sockAddr_out.sll_hatype = 0;
+            sockAddr_out.sll_pkttype=0;
+            sockAddr_out.sll_halen=0;
+            memset(sockAddr_out.sll_addr,0,8);
             /*if (-1 == sendto(ipSock_out.fdSock, ghxbuf + (oInteristun ? 14 : 0), (((ghxsiz & 0xFFFF) < (ifreq_out.ifr_mtu + (oInteristun ? 0 : 14))) ? (ghxsiz & 0xFFFF) : (ifreq_out.ifr_mtu + (oInteristun ? 0 : 14))), 0, (struct sockaddr *)&sockAddr_out, sizeof(sockAddr_out))) {
                 perror("Sending failure");
             } else { transmac_ip_success = true; }*/
@@ -1377,6 +1398,7 @@ gettingpacket:
             msg_header_pktin.msg_control = NULL;
             msg_header_pktin.msg_controllen = 0;
             msg_header_pktin.msg_flags = 0;
+            sockAddr.sll_protocol = htons(ETH_P_ARP);
             /*if (-1 == sendto(ipSock.fdSock, buf_arpin, sizeof(buf_arpin), 0, (struct sockaddr *)&sockAddr, sizeof(sockAddr))) {
                 perror("Sending failure");
             } else { transmac_ip_success = true; }*/
@@ -1413,7 +1435,7 @@ pMAC3_maniplation:
         /*if (-1 == (ghzsiz = recvfrom(ipSock_out.fdSock, ghzbuf + (oInteristun ? 14 : 0), sizeof(ghzbuf), 0, (struct sockaddr *)&sockAddr_out, (socklen_t*)&sockAddr_outsiz))) {
             perror("Receiveing failure(oInterface)");
         }*/
-        msg_iov_pktout.iov_base = (&ghzbuf + (oInteristun ? 14 : 0));
+        msg_iov_pktout.iov_base = (((void*)&ghzbuf) + ((unsigned long long)(oInteristun ? 14 : 0)));
         msg_iov_pktout.iov_len = (sizeof(ghzbuf) - (oInteristun ? 14 : 0));
         msg_header_pktout.msg_name = &sockAddr_out;
         msg_header_pktout.msg_namelen = sockAddr_outsiz;
@@ -1423,8 +1445,8 @@ pMAC3_maniplation:
         msg_header_pktout.msg_controllen = 0;
         msg_header_pktout.msg_flags = 0;
         if (-1 == (ghzsiz = recvmsg(ipSock_out.fdSock, &msg_header_pktout, 0))) {
-            perror("Receiveing failure(oInterface)");
-            ghzsiz = 0;
+            if (iInteristun==false) {perror("Receiveing failure(oInterface)");}
+            ghzsiz = ifreq_out.ifr_mtu + 14;
         }
         if (sockAddr_out.sll_pkttype!=PACKET_HOST && sockAddr_out.sll_pkttype!=PACKET_MULTICAST && sockAddr_out.sll_pkttype!=PACKET_BROADCAST && sockAddr_out.sll_pkttype!=PACKET_OTHERHOST){ ghzsiz = 0; goto pMAC3_maniplation_; }
         if (!(sockAddr_out.sll_pkttype!=PACKET_HOST && sockAddr_out.sll_pkttype!=PACKET_MULTICAST && sockAddr_out.sll_pkttype!=PACKET_BROADCAST && sockAddr_out.sll_pkttype!=PACKET_OTHERHOST) && (sockAddr_out.sll_ifindex == ifindex4out)){
@@ -1477,7 +1499,7 @@ pMAC3_maniplation:
                 sockAddr_out_arp.sll_ifindex = ifindex4out;
                 sockAddrghx.sll_ifindex = ifindex4in;
                 sockAddr_out.sll_ifindex = ifindex4out;
-                msg_iov_pktin.iov_base = (&ghzbuf + (oInteristun ? 14 : 0));
+                msg_iov_pktin.iov_base = (((void*)&ghzbuf) + ((unsigned long long)(oInteristun ? 14 : 0)));
                 msg_iov_pktin.iov_len = (((ghzsiz & 0xFFFF) < (ifreq_out.ifr_mtu + (oInteristun ? 0 : 14))) ? (ghzsiz & 0xFFFF) : (ifreq_out.ifr_mtu + (oInteristun ? 0 : 14)));
                 msg_header_pktin.msg_name = &sockAddr_out;
                 msg_header_pktin.msg_namelen = sizeof(sockAddr_out);
@@ -1587,7 +1609,7 @@ pMAC3_maniplation:
                 sockAddr_out_arp.sll_ifindex = ifindex4out;
                 sockAddrghx.sll_ifindex = ifindex4in;
                 sockAddr_out.sll_ifindex = ifindex4out;
-                msg_iov_pktin.iov_base = (&ghzbuf + (iInteristun ? 14 : 0));
+                msg_iov_pktin.iov_base = (((void*)&ghzbuf) + ((unsigned long long)(iInteristun ? 14 : 0)));
                 msg_iov_pktin.iov_len = (((ghzsiz & 0xFFFF) < (ifreq.ifr_mtu + (iInteristun ? 0 : 14))) ? (ghzsiz & 0xFFFF) : (ifreq.ifr_mtu + (iInteristun ? 0 : 14)));
                 msg_header_pktin.msg_name = &sockAddr;
                 msg_header_pktin.msg_namelen = sizeof(sockAddr);
@@ -1596,12 +1618,18 @@ pMAC3_maniplation:
                 msg_header_pktin.msg_control = NULL;
                 msg_header_pktin.msg_controllen = 0;
                 msg_header_pktin.msg_flags = 0;
+                sockAddr.sll_protocol = htons(ETH_P_IP);
+                hatype_out = sockAddr.sll_hatype; sockAddr.sll_hatype = 0;
+                sockAddr.sll_pkttype=0;
+                sockAddr.sll_halen=0;
+                memset(sockAddr.sll_addr,0,8);
                 /*if (-1 == sendto(ipSock.fdSock, ghzbuf + (iInteristun ? 14 : 0), (((ghzsiz & 0xFFFF) < (ifreq.ifr_mtu + (iInteristun ? 0 : 14))) ? (ghzsiz & 0xFFFF) : (ifreq.ifr_mtu + (iInteristun ? 0 : 14))), 0, (struct sockaddr *)&sockAddr, sizeof(sockAddr))) {
                     perror("Sending failure");
                 } else { transmac_ip_success = true; }*/
                 ignorein=true;
                 if (-1 == sendmsg(ipSock.fdSock, &msg_header_pktin, 0)) {
                     perror("Sending failure:-i");
+                    fprintf(stdout, "%08X%08X\n%08X%08X\n",((int)(((unsigned long long)msg_iov_pktin.iov_base) >> (32 * 1))),((int)(((unsigned long long)msg_iov_pktin.iov_base) >> (32 * 0))),((int)(((unsigned long long)&ghzbuf) >> (32 * 1))),((int)(((unsigned long long)&ghzbuf) >> (32 * 0))));
                 } else { transmac_ip_success = true;
                 continue; }
                 //memset(ghzbuf,0,sizeof(ghzbuf));
@@ -1634,6 +1662,7 @@ pMAC3_maniplation:
             msg_header_pktout.msg_control = NULL;
             msg_header_pktout.msg_controllen = 0;
             msg_header_pktout.msg_flags = 0;
+            sockAddr_out_arp.sll_protocol = htons(ETH_P_ARP);
             /*if (-1 == sendto(ipSock_out.fdSock, buf_arpout, sizeof(buf_arpout), 0, (struct sockaddr *)&sockAddr_out_arp, sizeof(sockAddr_out_arp))) {
                 perror("Sending failure");
             } else { transmac_ip_success = true; }*/
