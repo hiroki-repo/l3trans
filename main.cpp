@@ -1353,7 +1353,7 @@ gettingpacket:
             sockAddrghx.sll_ifindex = ifindex4in;
             sockAddr_out.sll_ifindex = ifindex4out;
             msg_iov_pktout.iov_base = (((void*)&ghxbuf) + ((unsigned long long)(oInteristun ? 14 : 0)));
-            msg_iov_pktout.iov_len = (((ghxsiz & 0xFFFF) < (ifreq_out.ifr_mtu + (oInteristun ? 14 : 0))) ? (ghxsiz & 0xFFFF) : (ifreq_out.ifr_mtu + (oInteristun ? 14 : 0)));
+            msg_iov_pktout.iov_len = (((ghxsiz & 0xFFFF) < (ifreq_out.ifr_mtu + (oInteristun ? 0 : 14))) ? (ghxsiz & 0xFFFF) : (ifreq_out.ifr_mtu + (oInteristun ? 0 : 14)));
             msg_header_pktout.msg_name = &sockAddr_out;
             msg_header_pktout.msg_namelen = sizeof(sockAddr_out);
             msg_header_pktout.msg_iov = &msg_iov_pktout;
@@ -1616,7 +1616,7 @@ pMAC3_maniplation:
                 sockAddrghx.sll_ifindex = ifindex4in;
                 sockAddr_out.sll_ifindex = ifindex4out;
                 msg_iov_pktin.iov_base = (((void*)&ghzbuf) + ((unsigned long long)(iInteristun ? 14 : 0)));
-                msg_iov_pktin.iov_len = (((ghzsiz & 0xFFFF) < (ifreq.ifr_mtu + (iInteristun ? 14 : 0))) ? (ghzsiz & 0xFFFF) : (ifreq.ifr_mtu + (iInteristun ? 14 : 0)));
+                msg_iov_pktin.iov_len = (((ghzsiz & 0xFFFF) < (ifreq.ifr_mtu + (iInteristun ? 0 : 14))) ? (ghzsiz & 0xFFFF) : (ifreq.ifr_mtu + (iInteristun ? 0 : 14)));
                 msg_header_pktin.msg_name = &sockAddr;
                 msg_header_pktin.msg_namelen = sizeof(sockAddr);
                 msg_header_pktin.msg_iov = &msg_iov_pktin;
