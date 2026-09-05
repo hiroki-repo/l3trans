@@ -1005,6 +1005,7 @@ aftersocketcreated:
         exit(1);
     }
     if (!(ifreq.ifr_flags & IFF_BROADCAST) && (ifreq.ifr_flags & IFF_POINTOPOINT) && (ifreq.ifr_flags & IFF_NOARP)){
+        if (iInteristun==false){int socktmp=socket(AF_INET, SOCK_DGRAM, 0); ioctl(socktmp, SIOCGIFMTU, &ifreq); close(socktmp);}
         iInteristun = true;
 #if 0
         sockAddr.sll_hatype = htons(ifreq.ifr_hwaddr.sa_family);
@@ -1029,6 +1030,7 @@ aftersocketcreated:
 #endif
     }
     if (!(ifreq_out.ifr_flags & IFF_BROADCAST) && (ifreq_out.ifr_flags & IFF_POINTOPOINT) && (ifreq_out.ifr_flags & IFF_NOARP)){
+        if (oInteristun==false){int socktmp=socket(AF_INET, SOCK_DGRAM, 0); ioctl(socktmp, SIOCGIFMTU, &ifreq_out); close(socktmp);}
         oInteristun = true;
 #if 0
         sockAddr_out.sll_hatype = htons(ifreq_out.ifr_hwaddr.sa_family);
@@ -1245,6 +1247,8 @@ gettingpacket:
         }
         if (oInteristun == false && iInteristun == true){
             ghxsiz = ghxsiz + 14;
+        } else if (oInteristun == true && iInteristun == false){
+            ghxsiz = ghxsiz - 14;
         }
         sockAddr.sll_ifindex = ifindex4in;
         sockAddr_out_arp.sll_ifindex = ifindex4out;
@@ -1461,6 +1465,8 @@ pMAC3_maniplation:
         }
         if (iInteristun == false && oInteristun == true){
             ghzsiz = ghzsiz + 14;
+        } else if (iInteristun == true && oInteristun == false){
+            ghzsiz = ghzsiz - 14;
         }
         sockAddr.sll_ifindex = ifindex4in;
         sockAddr_out_arp.sll_ifindex = ifindex4out;
